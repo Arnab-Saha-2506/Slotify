@@ -29,6 +29,6 @@ public class UserEntity extends BaseEntity {
     private String password;
 
     @Column(nullable = false)
-    private Instant timezone;
+    private String timezone;
 
 }

@@ -3,9 +3,10 @@ package com.proj.slotify.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import lombok.*;
 
-import java.time.Instant;
+import java.util.List;
 
 @Entity
 @Getter
@@ -30,5 +31,9 @@ public class UserEntity extends BaseEntity {
 
     @Column(nullable = false)
     private String timezone;
+
+    @OneToMany(mappedBy = "user")
+    private List<AvailabilityEntity> availabilityEntityList;
+
 
 }

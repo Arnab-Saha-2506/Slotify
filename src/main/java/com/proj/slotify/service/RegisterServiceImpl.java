@@ -52,7 +52,7 @@ public class RegisterServiceImpl implements RegisterService{
         UserEntity userDetails = userRepository.findByEmail(dto.getEmail());
 
         if(userDetails == null){
-            throw new Exception("User doesn't exists, Register!!!");
+            throw new Exception("User doesn't exist, Register!!!");
         }
 
         if(!passwordEncoder.matches(dto.getPassword(), userDetails.getPassword())){

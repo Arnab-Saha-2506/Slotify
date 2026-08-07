@@ -2,6 +2,7 @@ package com.proj.slotify.service;
 
 import com.proj.slotify.dto.UserResponseDTO;
 import com.proj.slotify.entity.UserEntity;
+import com.proj.slotify.exception.UserNotFoundException;
 import com.proj.slotify.mapper.RegisterMapper;
 import com.proj.slotify.mapper.UserMapper;
 import com.proj.slotify.repository.UserRepository;
@@ -24,7 +25,7 @@ public class UserServiceImpl implements UserService{
 
         UserEntity user = userRepository.findByEmail(email);
         if(user == null){
-            throw new Exception("User not found!!");
+            throw new UserNotFoundException("User not found!!");
         }
         return UserMapper.toDTO(user);
 //        return null;

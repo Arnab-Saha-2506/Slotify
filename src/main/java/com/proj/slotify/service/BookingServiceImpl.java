@@ -6,7 +6,7 @@ import com.proj.slotify.dto.MyBookingListResponseDTO;
 import com.proj.slotify.entity.BookingEntity;
 import com.proj.slotify.entity.UserEntity;
 import com.proj.slotify.enums.BookingStatus;
-import com.proj.slotify.exception.SlotAlreadyBookedException;
+import com.proj.slotify.exception.*;
 import com.proj.slotify.mapper.BookingMapper;
 import com.proj.slotify.repository.BookingRepository;
 import com.proj.slotify.repository.UserRepository;
@@ -31,7 +31,7 @@ public class BookingServiceImpl implements BookingService{
         UserEntity ownerDetails = userRepository.findById(dto.getOwnerId()).orElse(null);
 
         if(ownerDetails == null){
-            throw new Exception("Owner not found with this ID: "+dto.getOwnerId());
+            throw new UserNotFoundException("Owner not found with this ID: "+dto.getOwnerId());
         }
 
 //        if(!dto.getStartTime().isBefore(dto.getEndTime())){
@@ -63,7 +63,7 @@ public class BookingServiceImpl implements BookingService{
         UserEntity user = userRepository.findByEmail(email);
 
         if(user == null){
-            throw new Exception("User not found");
+            throw new UserNotFoundException("User not found");
         }
 
         return bookingRepository.findByOwner(user).stream()
@@ -81,17 +81,17 @@ public class BookingServiceImpl implements BookingService{
         UserEntity user = userRepository.findByEmail(email);
 
         if(user == null){
-            throw new Exception("User not found");
+            throw new UserNotFoundException("User not found");
         }
 
         BookingEntity booking = bookingRepository.findById(id).orElse(null);
 
         if(booking == null){
-            throw new Exception("Booking not found with this ID: "+id);
+            throw new BookingNotFoundException("Booking not found with this ID: "+id);
         }
 
         if(!booking.getOwner().getId().equals(user.getId())){
-            throw new Exception("You are not authorized to view this booking!");
+            throw new UnauthorizedException("You are not authorized to view this booking!");
         }
 
         return BookingMapper.toListItemDTO(booking);
@@ -108,21 +108,21 @@ public class BookingServiceImpl implements BookingService{
         UserEntity user = userRepository.findByEmail(email);
 
         if(user == null){
-            throw new Exception("User not found");
+            throw new UserNotFoundException("User not found");
         }
 
         BookingEntity booking = bookingRepository.findById(id).orElse(null);
 
         if(booking == null){
-            throw new Exception("Booking not found with this ID: "+id);
+            throw new BookingNotFoundException("Booking not found with this ID: "+id);
         }
 
         if(!booking.getOwner().getId().equals(user.getId())){
-            throw new Exception("You are not authorized to view this booking!");
+            throw new UnauthorizedException("You are not authorized to view this booking!");
         }
 
         if(booking.getStatus() == BookingStatus.CANCELLED){
-            throw new Exception("Booking is already cancelled!");
+            throw new BadRequestException("Booking is already cancelled!");
         }
 
         booking.setStatus(BookingStatus.CANCELLED);

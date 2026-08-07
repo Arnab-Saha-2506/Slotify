@@ -4,6 +4,10 @@ import com.proj.slotify.dto.AvailabilityRequestDTO;
 import com.proj.slotify.dto.AvailabilityResponseDTO;
 import com.proj.slotify.entity.AvailabilityEntity;
 import com.proj.slotify.entity.UserEntity;
+import com.proj.slotify.exception.AvailabilityNotFoundException;
+import com.proj.slotify.exception.BadRequestException;
+import com.proj.slotify.exception.UnauthorizedException;
+import com.proj.slotify.exception.UserNotFoundException;
 import com.proj.slotify.mapper.AvailabilityMapper;
 import com.proj.slotify.repository.AvailabilityRepository;
 import com.proj.slotify.repository.UserRepository;
@@ -31,15 +35,15 @@ public class AvailabilityServiceImpl implements AvailabilityService{
         UserEntity user = userRepository.findByEmail(email);
 
         if(user == null){
-            throw new Exception("User not found with this mail id: "+ email);
+            throw new UserNotFoundException("User not found with this mail id: "+ email);
         }
 
         if(!dto.getStartTime().isBefore(dto.getEndTime())){
-            throw new Exception("Start time must be before End time");
+            throw new BadRequestException("Start time must be before End time");
         }
 
         if(availabilityRepository.existsByUserAndDayOfWeek(user, dto.getDayOfWeek())){
-            throw new Exception("Availability already set for "+dto.getDayOfWeek());
+            throw new BadRequestException("Availability already set for "+dto.getDayOfWeek());
         }
 
         AvailabilityEntity entity = AvailabilityMapper.toEntity(dto, user);
@@ -59,7 +63,7 @@ public class AvailabilityServiceImpl implements AvailabilityService{
         UserEntity user = userRepository.findByEmail(email);
 
         if(user == null){
-            throw new Exception("User not found with this mail id: "+ email);
+            throw new UserNotFoundException("User not found with this mail id: "+ email);
         }
 
         List<AvailabilityEntity> listEntities = availabilityRepository.findByUser(user);
@@ -79,25 +83,25 @@ public class AvailabilityServiceImpl implements AvailabilityService{
         UserEntity user = userRepository.findByEmail(email);
 
         if(user == null){
-            throw new Exception("User not found with this mail id: "+ email);
+            throw new UserNotFoundException("User not found with this mail id: "+ email);
         }
 
         AvailabilityEntity existingAvailability = availabilityRepository.findById(id).orElse(null);
         if(existingAvailability == null){
-            throw new Exception("Availability not found with id: "+id);
+            throw new AvailabilityNotFoundException("Availability not found with id: "+id);
         }
 
         if(!existingAvailability.getUser().getId().equals(user.getId())){
-            throw new Exception("You are not authorized to update this Availability.");
+            throw new UnauthorizedException("You are not authorized to update this Availability.");
         }
 
         if(!dto.getStartTime().isBefore(dto.getEndTime())){
-            throw new Exception("Start time must be before End time");
+            throw new BadRequestException("Start time must be before End time");
         }
 
         if(!existingAvailability.getDayOfWeek().equals(dto.getDayOfWeek())){
             if(availabilityRepository.existsByUserAndDayOfWeek(user, dto.getDayOfWeek())){
-                throw new Exception("Availability already set for "+dto.getDayOfWeek());
+                throw new BadRequestException("Availability already set for "+dto.getDayOfWeek());
             }
         }
 
@@ -119,15 +123,15 @@ public class AvailabilityServiceImpl implements AvailabilityService{
         UserEntity user = userRepository.findByEmail(email);
 
         if(user == null){
-            throw new Exception("User not found with this mail id: "+ email);
+            throw new UserNotFoundException("User not found with this mail id: "+ email);
         }
 
         AvailabilityEntity existingAvailability = availabilityRepository.findById(id).orElse(null);
         if(existingAvailability == null){
-            throw new Exception("Availability not found with id: "+id);
+            throw new AvailabilityNotFoundException("Availability not found with id: "+id);
         }
         if(!existingAvailability.getUser().getId().equals(user.getId())){
-            throw new Exception("You are not authorized to delete this Availability.");
+            throw new UnauthorizedException("You are not authorized to delete this Availability.");
         }
 
         availabilityRepository.delete(existingAvailability);

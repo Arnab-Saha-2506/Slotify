@@ -5,6 +5,8 @@ import com.proj.slotify.dto.SlotResponseDTO;
 import com.proj.slotify.entity.AvailabilityEntity;
 import com.proj.slotify.entity.BookingEntity;
 import com.proj.slotify.entity.UserEntity;
+import com.proj.slotify.exception.BadRequestException;
+import com.proj.slotify.exception.UserNotFoundException;
 import com.proj.slotify.repository.AvailabilityRepository;
 import com.proj.slotify.repository.BookingRepository;
 import com.proj.slotify.repository.UserRepository;
@@ -30,7 +32,7 @@ public class SlotServiceImpl implements SlotService{
         UserEntity user = userRepository.findById(userId).orElse(null);
 
         if(user == null){
-            throw new Exception("User not found with this id: "+ userId);
+            throw new UserNotFoundException("User not found with this id: "+ userId);
         }
 
         DayOfWeek dayOfWeek = date.getDayOfWeek();
@@ -52,7 +54,7 @@ public class SlotServiceImpl implements SlotService{
 
         //Validate the requested duration
         if (slotDuration < 15 || slotDuration > 120 || slotDuration % 15 != 0) {
-            throw new Exception("Slot duration must be of each 15 mins and max 2 hours");
+            throw new BadRequestException("Slot duration must be of each 15 mins and max 2 hours");
         }
 
         List<SlotResponseDTO> allSlots = generateSlots(availability, date, slotDuration);

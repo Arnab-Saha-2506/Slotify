@@ -6,6 +6,7 @@ import com.proj.slotify.dto.MyBookingListResponseDTO;
 import com.proj.slotify.entity.BookingEntity;
 import com.proj.slotify.entity.UserEntity;
 import com.proj.slotify.enums.BookingStatus;
+import com.proj.slotify.util.IdGenerator;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -14,7 +15,8 @@ public class BookingMapper {
 
     public static BookingEntity toEntity(BookingRequestDTO dto, UserEntity owner, LocalDateTime endTime){
         return BookingEntity.builder()
-                .bookingId(UUID.randomUUID().toString().substring(0,8))
+//                .bookingId(UUID.randomUUID().toString().substring(0,8))
+                .bookingId(IdGenerator.generateForBooking())
                 .owner(owner)
                 .guestName(dto.getGuestName())
                 .guestEmail(dto.getGuestEmail())

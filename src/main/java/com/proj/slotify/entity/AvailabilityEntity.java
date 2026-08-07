@@ -27,6 +27,10 @@ public class AvailabilityEntity {
     @Column(nullable = false)
     private LocalTime endTime;
 
+    @Builder.Default
+    @Column(nullable = false, columnDefinition = "INT DEFAULT 30")
+    private Integer slotDurationMinutes = 30;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;

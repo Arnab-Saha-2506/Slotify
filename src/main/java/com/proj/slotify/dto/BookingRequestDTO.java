@@ -1,9 +1,7 @@
 package com.proj.slotify.dto;
 
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -27,6 +25,11 @@ public class BookingRequestDTO {
     @NotNull(message = "Start time is required")
     private LocalDateTime startTime;
 
-    @NotNull(message = "End time is required")
-    private LocalDateTime endTime;
+//    @NotNull(message = "End time is required")
+//    private LocalDateTime endTime;
+
+    @NotNull(message = "Duration is required")
+    @Min(value = 15, message = "Duration must be at least 15 minutes")
+    @Max(value = 120, message = "Duration must be at most 120 minutes")
+    private Integer duration;
 }

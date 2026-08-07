@@ -3,8 +3,10 @@ package com.proj.slotify.service;
 
 import com.proj.slotify.dto.SlotResponseDTO;
 import com.proj.slotify.entity.AvailabilityEntity;
+import com.proj.slotify.entity.BookingEntity;
 import com.proj.slotify.entity.UserEntity;
 import com.proj.slotify.repository.AvailabilityRepository;
+import com.proj.slotify.repository.BookingRepository;
 import com.proj.slotify.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ public class SlotServiceImpl implements SlotService{
 
     private final UserRepository userRepository;
     private final AvailabilityRepository availabilityRepository;
+    private final BookingRepository bookingRepository;
 
     @Override
     public List<SlotResponseDTO> getAvailableSlots(String userId, LocalDate date, Integer duration) throws Exception {
@@ -40,9 +43,9 @@ public class SlotServiceImpl implements SlotService{
         }
 
         //DEBUGGING
-        System.out.println("DEBUG: availability.getSlotDurationMinutes() = " + availability.getSlotDurationMinutes());
-        System.out.println("DEBUG: duration parameter = " + duration);
-        System.out.println("DEBUG: slotDuration (final) = " + ((duration != null) ? duration : availability.getSlotDurationMinutes()));
+//        System.out.println("DEBUG: availability.getSlotDurationMinutes() = " + availability.getSlotDurationMinutes());
+//        System.out.println("DEBUG: duration parameter = " + duration);
+//        System.out.println("DEBUG: slotDuration (final) = " + ((duration != null) ? duration : availability.getSlotDurationMinutes()));
 
         //Use guest's requested duration, or fall back to host's preference
         int slotDuration = (duration != null) ? duration : availability.getSlotDurationMinutes();
@@ -52,7 +55,23 @@ public class SlotServiceImpl implements SlotService{
             throw new Exception("Slot duration must be of each 15 mins and max 2 hours");
         }
 
-        return generateSlots(availability, date, slotDuration);
+        List<SlotResponseDTO> allSlots = generateSlots(availability, date, slotDuration);
+
+        List<BookingEntity> bookedSlots = bookingRepository.findBookedByOwner(userId);
+
+        return allSlots.stream()
+                .filter(slot -> !isSlotBooked(slot, bookedSlots))
+                .toList();
+    }
+
+    private boolean isSlotBooked(SlotResponseDTO slot, List<BookingEntity> bookedSlots){
+        for(BookingEntity booking : bookedSlots){
+            if(slot.getStartTime().isBefore(booking.getEndTime())
+            && slot.getEndTime().isAfter(booking.getStartTime())){
+                return true;
+            }
+        }
+        return false;
     }
 
     private List<SlotResponseDTO> generateSlots(AvailabilityEntity availability, LocalDate date, int duration){

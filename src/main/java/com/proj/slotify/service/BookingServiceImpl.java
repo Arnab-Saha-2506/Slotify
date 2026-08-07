@@ -6,13 +6,16 @@ import com.proj.slotify.dto.MyBookingListResponseDTO;
 import com.proj.slotify.entity.BookingEntity;
 import com.proj.slotify.entity.UserEntity;
 import com.proj.slotify.enums.BookingStatus;
+import com.proj.slotify.exception.SlotAlreadyBookedException;
 import com.proj.slotify.mapper.BookingMapper;
 import com.proj.slotify.repository.BookingRepository;
 import com.proj.slotify.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -23,6 +26,7 @@ public class BookingServiceImpl implements BookingService{
     private final UserRepository userRepository;
 
     @Override
+    @Transactional
     public BookingResponseDTO createBooking(BookingRequestDTO dto) throws Exception{
         UserEntity ownerDetails = userRepository.findById(dto.getOwnerId()).orElse(null);
 
@@ -30,11 +34,19 @@ public class BookingServiceImpl implements BookingService{
             throw new Exception("Owner not found with this ID: "+dto.getOwnerId());
         }
 
-        if(!dto.getStartTime().isBefore(dto.getEndTime())){
-            throw new Exception("Start time must be before End time!");
+//        if(!dto.getStartTime().isBefore(dto.getEndTime())){
+//            throw new Exception("Start time must be before End time!");
+//        }
+        LocalDateTime endTime = dto.getStartTime().plusMinutes(dto.getDuration());
+
+        //Check conflicts
+        List<BookingEntity> conflicts = bookingRepository.findConflictingBookings(dto.getOwnerId(), dto.getStartTime(), endTime);
+
+        if(!conflicts.isEmpty()){
+            throw new SlotAlreadyBookedException("Slot already booked for this requested time.");
         }
 
-        BookingEntity booking = BookingMapper.toEntity(dto, ownerDetails);
+        BookingEntity booking = BookingMapper.toEntity(dto, ownerDetails, endTime);
 
         BookingEntity saved = bookingRepository.save(booking);
 

@@ -4,6 +4,7 @@ import com.proj.slotify.security.JwtAuthEntryPoint;
 import com.proj.slotify.security.JwtAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -44,6 +45,7 @@ public class SecurityConfig {
                                 "/api/v1/auth/login",
                                 "/api/v1/users/*/slots"
                         ).permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/bookings").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex

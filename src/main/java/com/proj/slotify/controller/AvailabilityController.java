@@ -23,7 +23,7 @@ public class AvailabilityController {
     private final AvailabilityService availabilityService;
 
     @PostMapping
-    public ResponseEntity<List<AvailabilityResponseDTO>> setAvailability(@Valid @RequestBody List<AvailabilityRequestDTO> dtos) throws Exception{
+    public ResponseEntity<List<AvailabilityResponseDTO>> setAvailability(@Valid @RequestBody List<AvailabilityRequestDTO> dtos) throws Exception {
         logger.info("[AvailabilityController] POST /api/v1/availability - batch of {} records", dtos.size());
 
         List<AvailabilityResponseDTO> responseDTOs = availabilityService.setAvailability(dtos);
@@ -33,7 +33,7 @@ public class AvailabilityController {
     }
 
     @GetMapping
-    public ResponseEntity<List<AvailabilityResponseDTO>> getAvailability() throws Exception{
+    public ResponseEntity<List<AvailabilityResponseDTO>> getAvailability() throws Exception {
         logger.info("[AvailabilityController] GET /api/v1/availability");
 
         List<AvailabilityResponseDTO> responseDTO = availabilityService.getAvailability();
@@ -42,10 +42,22 @@ public class AvailabilityController {
         return ResponseEntity.ok().body(responseDTO);
     }
 
+    @GetMapping("/date/{date}")
+    public ResponseEntity<List<AvailabilityResponseDTO>> getAvailabilityByDate(
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) throws Exception {
+        logger.info("[AvailabilityController] GET /api/v1/availability/date/{}", date);
+
+        List<AvailabilityResponseDTO> responseDTOs = availabilityService.getAvailabilityByDate(date);
+        logger.info("[AvailabilityController] Returning {} availability records for date={}", responseDTOs.size(), date);
+
+        return ResponseEntity.ok().body(responseDTOs);
+    }
+
     @PutMapping("/{id}")
-    public ResponseEntity<AvailabilityResponseDTO> updateAvailability(@PathVariable String id,
-                                                                      @Valid @RequestBody AvailabilityRequestDTO dto,
-                                                                      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) throws Exception{
+    public ResponseEntity<AvailabilityResponseDTO> updateAvailability(
+            @PathVariable String id,
+            @Valid @RequestBody AvailabilityRequestDTO dto,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) throws Exception {
         logger.info("[AvailabilityController] PUT /api/v1/availability/{} with date={}", id, date);
 
         AvailabilityResponseDTO responseDTO = availabilityService.updateAvailability(id, dto, date);
@@ -53,7 +65,7 @@ public class AvailabilityController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteAvailability(@PathVariable String id) throws Exception{
+    public ResponseEntity<Void> deleteAvailability(@PathVariable String id) throws Exception {
         logger.info("[AvailabilityController] DELETE /api/v1/availability/{}", id);
 
         availabilityService.deleteAvailability(id);

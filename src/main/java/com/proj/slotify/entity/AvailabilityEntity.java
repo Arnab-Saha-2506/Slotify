@@ -19,6 +19,7 @@ public class AvailabilityEntity {
     @Column(length = 8, nullable = false, updatable = false)
     private String id;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = true)  // ← nullable now
     private DayOfWeek dayOfWeek;
 

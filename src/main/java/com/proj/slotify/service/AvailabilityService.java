@@ -10,5 +10,6 @@ public interface AvailabilityService {
     List<AvailabilityResponseDTO> setAvailability(List<AvailabilityRequestDTO> dtos) throws Exception;
     List<AvailabilityResponseDTO> getAvailability() throws Exception;
     AvailabilityResponseDTO updateAvailability(String id, AvailabilityRequestDTO dto, LocalDate date) throws Exception;
+    List<AvailabilityResponseDTO> getAvailabilityByDate(LocalDate date) throws Exception;
     void deleteAvailability(String id) throws Exception;
 }

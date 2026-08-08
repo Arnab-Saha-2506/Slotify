@@ -12,6 +12,8 @@ import com.proj.slotify.repository.BookingRepository;
 import com.proj.slotify.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -22,27 +24,35 @@ import java.util.List;
 @RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService{
 
+    private static final Logger logger = LoggerFactory.getLogger(BookingServiceImpl.class);
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
 
     @Override
     @Transactional
     public BookingResponseDTO createBooking(BookingRequestDTO dto) throws Exception{
+        logger.info("[createBooking] ownerId={}, guestName={}, startTime={}, duration={}",
+                dto.getOwnerId(), dto.getGuestName(), dto.getStartTime(), dto.getDuration());
         UserEntity ownerDetails = userRepository.findById(dto.getOwnerId()).orElse(null);
 
         if(ownerDetails == null){
+            logger.warn("[createBooking] Owner not found with id={}", dto.getOwnerId());
             throw new UserNotFoundException("Owner not found with this ID: "+dto.getOwnerId());
         }
 
 //        if(!dto.getStartTime().isBefore(dto.getEndTime())){
 //            throw new Exception("Start time must be before End time!");
 //        }
+
         LocalDateTime endTime = dto.getStartTime().plusMinutes(dto.getDuration());
+        logger.info("[createBooking] Owner found: id={}, email={}", ownerDetails.getId(), ownerDetails.getEmail());
 
         //Check conflicts
         List<BookingEntity> conflicts = bookingRepository.findConflictingBookings(dto.getOwnerId(), dto.getStartTime(), endTime);
 
         if(!conflicts.isEmpty()){
+            logger.warn("[createBooking] Slot conflict detected for ownerId={}, startTime={}, endTime={}, conflictCount={}",
+                    dto.getOwnerId(), dto.getStartTime(), endTime, conflicts.size());
             throw new SlotAlreadyBookedException("Slot already booked for this requested time.");
         }
 
@@ -50,6 +60,8 @@ public class BookingServiceImpl implements BookingService{
 
         BookingEntity saved = bookingRepository.save(booking);
 
+        logger.info("[createBooking] Booking saved successfully: bookingId={}, ownerId={}, startTime={}, endTime={}",
+                saved.getBookingId(), saved.getOwner().getId(), saved.getStartTime(), saved.getEndTime());
         return BookingMapper.toDTO(saved);
     }
 
@@ -59,12 +71,15 @@ public class BookingServiceImpl implements BookingService{
                 .getContext()
                 .getAuthentication()
                 .getPrincipal();
+        logger.info("[getMyBookings] Fetching bookings for email={}", email);
 
         UserEntity user = userRepository.findByEmail(email);
 
         if(user == null){
+            logger.warn("[getMyBookings] User not found for email={}", email);
             throw new UserNotFoundException("User not found");
         }
+        logger.info("[getMyBookings] User found: id={}, fetching bookings", user.getId());
 
         return bookingRepository.findByOwner(user).stream()
                 .map(BookingMapper::toListItemDTO)
@@ -77,23 +92,29 @@ public class BookingServiceImpl implements BookingService{
                 .getContext()
                 .getAuthentication()
                 .getPrincipal();
+        logger.info("[getBookingDetails] Fetching booking id={} for email={}", id, email);
 
         UserEntity user = userRepository.findByEmail(email);
 
         if(user == null){
+            logger.warn("[getBookingDetails] User not found for email={}", email);
             throw new UserNotFoundException("User not found");
         }
 
         BookingEntity booking = bookingRepository.findById(id).orElse(null);
 
         if(booking == null){
+            logger.warn("[getBookingDetails] Booking not found: id={}", id);
             throw new BookingNotFoundException("Booking not found with this ID: "+id);
         }
 
         if(!booking.getOwner().getId().equals(user.getId())){
+            logger.warn("[getBookingDetails] Unauthorized access: user id={} tried to access booking id={} owned by {}",
+                    user.getId(), id, booking.getOwner().getId());
             throw new UnauthorizedException("You are not authorized to view this booking!");
         }
 
+        logger.info("[getBookingDetails] Access granted for user id={} to booking id={}", user.getId(), id);
         return BookingMapper.toListItemDTO(booking);
 
     }
@@ -104,29 +125,38 @@ public class BookingServiceImpl implements BookingService{
                 .getContext()
                 .getAuthentication()
                 .getPrincipal();
+        logger.info("[cancelBookingById] Cancelling booking id={} for email={}", id, email);
 
         UserEntity user = userRepository.findByEmail(email);
 
         if(user == null){
+            logger.warn("[cancelBookingById] User not found for email={}", email);
             throw new UserNotFoundException("User not found");
         }
 
         BookingEntity booking = bookingRepository.findById(id).orElse(null);
 
         if(booking == null){
+            logger.warn("[cancelBookingById] Booking not found: id={}", id);
             throw new BookingNotFoundException("Booking not found with this ID: "+id);
         }
+        logger.info("[cancelBookingById] Booking found: id={}, ownerId={}, status={}",
+                booking.getBookingId(), booking.getOwner().getId(), booking.getStatus());
 
         if(!booking.getOwner().getId().equals(user.getId())){
+            logger.warn("[cancelBookingById] Unauthorized cancellation attempt: user id={} tried to cancel booking id={}",
+                    user.getId(), id);
             throw new UnauthorizedException("You are not authorized to view this booking!");
         }
 
         if(booking.getStatus() == BookingStatus.CANCELLED){
+            logger.warn("[cancelBookingById] Booking id={} is already cancelled", id);
             throw new BadRequestException("Booking is already cancelled!");
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
         BookingEntity saved = bookingRepository.save(booking);
+        logger.info("[cancelBookingById] Booking cancelled successfully: bookingId={}", saved.getBookingId());
 
         return BookingResponseDTO.builder()
                 .bookingId(saved.getBookingId())

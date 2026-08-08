@@ -13,7 +13,12 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
-                        .allowedOrigins("http://localhost:3001")
+                        .allowedOrigins("http://localhost:3001",
+                                "http://localhost:3000")
+                        .allowedOriginPatterns("http://localhost:*",
+                                "https://*.onrender.com",
+                                "https://*.vercel.app",
+                                "https://*.netlify.app")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("Content-Type", "Authorization")
                         .allowCredentials(false);

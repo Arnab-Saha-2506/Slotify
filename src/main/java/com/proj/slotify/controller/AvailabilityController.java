@@ -7,9 +7,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -41,10 +43,12 @@ public class AvailabilityController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AvailabilityResponseDTO> updateAvailability(@PathVariable String id, @Valid @RequestBody AvailabilityRequestDTO dto) throws Exception{
-        logger.info("[AvailabilityController] PUT /api/v1/availability/{}", id);
+    public ResponseEntity<AvailabilityResponseDTO> updateAvailability(@PathVariable String id,
+                                                                      @Valid @RequestBody AvailabilityRequestDTO dto,
+                                                                      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) throws Exception{
+        logger.info("[AvailabilityController] PUT /api/v1/availability/{} with date={}", id, date);
 
-        AvailabilityResponseDTO responseDTO = availabilityService.updateAvailability(id, dto);
+        AvailabilityResponseDTO responseDTO = availabilityService.updateAvailability(id, dto, date);
         return ResponseEntity.ok().body(responseDTO);
     }
 

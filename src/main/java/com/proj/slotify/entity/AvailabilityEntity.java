@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
 
 @Entity
@@ -18,8 +19,11 @@ public class AvailabilityEntity {
     @Column(length = 8, nullable = false, updatable = false)
     private String id;
 
-    @Column(nullable = false)
+    @Column(nullable = true)  // ← nullable now
     private DayOfWeek dayOfWeek;
+
+    @Column(nullable = true)  // ← new field
+    private LocalDate date;
 
     @Column(nullable = false)
     private LocalTime startTime;

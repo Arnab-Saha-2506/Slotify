@@ -15,6 +15,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -131,64 +132,140 @@ public class AvailabilityServiceImpl implements AvailabilityService{
                 .toList();
     }
 
+//    @Override
+//    public AvailabilityResponseDTO updateAvailability1(String id, AvailabilityRequestDTO dto, LocalDate date) throws Exception{
+//        String email = (String) SecurityContextHolder
+//                .getContext()
+//                .getAuthentication()
+//                .getPrincipal();
+//
+//        logger.info("[updateAvailability] Updating availability id={} for email={}", id, email);
+//
+//        UserEntity user = userRepository.findByEmail(email);
+//
+//        if(user == null){
+//            logger.warn("[updateAvailability] User not found with email={}", email);
+//            throw new UserNotFoundException("User not found with this mail id: "+ email);
+//        }
+//
+//        // Parse dayOfWeek string to enum FIRST
+//        DayOfWeek newDayOfWeek;
+//        try {
+//            newDayOfWeek = DayOfWeek.valueOf(dto.getDayOfWeek().toUpperCase());
+//        } catch (IllegalArgumentException e) {
+//            logger.warn("[updateAvailability] Invalid dayOfWeek value: {}", dto.getDayOfWeek());
+//            throw new BadRequestException("Day of week is required");
+//        }
+//
+//        AvailabilityEntity existingAvailability = availabilityRepository.findById(id).orElse(null);
+//        if(existingAvailability == null){
+//            logger.warn("[updateAvailability] Availability not found: id={}", id);
+//            throw new AvailabilityNotFoundException("Availability not found with id: "+id);
+//        }
+//
+//        logger.info("[updateAvailability] Availability found: id={}, ownerId={}", existingAvailability.getId(), existingAvailability.getUser().getId());
+//        if(!existingAvailability.getUser().getId().equals(user.getId())){
+//            logger.warn("[updateAvailability] Unauthorized update attempt: user id={} tried to update availability id={} owned by {}",
+//                    user.getId(), id, existingAvailability.getUser().getId());
+//            throw new UnauthorizedException("You are not authorized to update this Availability.");
+//        }
+//
+//        if(!dto.getStartTime().isBefore(dto.getEndTime())){
+//            logger.warn("[updateAvailability] Invalid time range: startTime={} is not before endTime={}", dto.getStartTime(), dto.getEndTime());
+//            throw new BadRequestException("Start time must be before End time");
+//        }
+//
+//        // Compare using the parsed enum, not the raw string
+//        if(!existingAvailability.getDayOfWeek().equals(newDayOfWeek)){
+//            if(availabilityRepository.existsByUserAndDayOfWeek(user, newDayOfWeek)){   // ← use parsed enum
+//                logger.warn("[updateAvailability] Availability already set for {}", newDayOfWeek);
+//                throw new AvailabilityAlreadyExistsException("Availability already set for "+newDayOfWeek);
+//            }
+//        }
+//
+//        existingAvailability.setDayOfWeek(newDayOfWeek);   // ← set parsed enum
+//        existingAvailability.setStartTime(dto.getStartTime());
+//        existingAvailability.setEndTime(dto.getEndTime());
+//
+//        AvailabilityEntity savedEntity = availabilityRepository.save(existingAvailability);
+//        logger.info("[updateAvailability] Availability updated: id={}, new day={}, startTime={}, endTime={}",
+//                savedEntity.getId(), savedEntity.getDayOfWeek(), savedEntity.getStartTime(), savedEntity.getEndTime());
+//        return AvailabilityMapper.toDTO(savedEntity);
+//    }
+
     @Override
-    public AvailabilityResponseDTO updateAvailability(String id, AvailabilityRequestDTO dto) throws Exception{
+    public AvailabilityResponseDTO updateAvailability(String id, AvailabilityRequestDTO dto, LocalDate date) throws Exception {
         String email = (String) SecurityContextHolder
                 .getContext()
                 .getAuthentication()
                 .getPrincipal();
 
-        logger.info("[updateAvailability] Updating availability id={} for email={}", id, email);
+        logger.info("[updateAvailability] Updating availability id={} for email={}, date={}", id, email, date);
 
         UserEntity user = userRepository.findByEmail(email);
 
-        if(user == null){
+        if (user == null) {
             logger.warn("[updateAvailability] User not found with email={}", email);
-            throw new UserNotFoundException("User not found with this mail id: "+ email);
-        }
-
-        // Parse dayOfWeek string to enum FIRST
-        DayOfWeek newDayOfWeek;
-        try {
-            newDayOfWeek = DayOfWeek.valueOf(dto.getDayOfWeek().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            logger.warn("[updateAvailability] Invalid dayOfWeek value: {}", dto.getDayOfWeek());
-            throw new BadRequestException("Day of week is required");
+            throw new UserNotFoundException("User not found with this mail id: " + email);
         }
 
         AvailabilityEntity existingAvailability = availabilityRepository.findById(id).orElse(null);
-        if(existingAvailability == null){
+        if (existingAvailability == null) {
             logger.warn("[updateAvailability] Availability not found: id={}", id);
-            throw new AvailabilityNotFoundException("Availability not found with id: "+id);
+            throw new AvailabilityNotFoundException("Availability not found with id: " + id);
         }
 
         logger.info("[updateAvailability] Availability found: id={}, ownerId={}", existingAvailability.getId(), existingAvailability.getUser().getId());
-        if(!existingAvailability.getUser().getId().equals(user.getId())){
+        if (!existingAvailability.getUser().getId().equals(user.getId())) {
             logger.warn("[updateAvailability] Unauthorized update attempt: user id={} tried to update availability id={} owned by {}",
                     user.getId(), id, existingAvailability.getUser().getId());
             throw new UnauthorizedException("You are not authorized to update this Availability.");
         }
 
-        if(!dto.getStartTime().isBefore(dto.getEndTime())){
+        if (!dto.getStartTime().isBefore(dto.getEndTime())) {
             logger.warn("[updateAvailability] Invalid time range: startTime={} is not before endTime={}", dto.getStartTime(), dto.getEndTime());
             throw new BadRequestException("Start time must be before End time");
         }
 
-        // Compare using the parsed enum, not the raw string
-        if(!existingAvailability.getDayOfWeek().equals(newDayOfWeek)){
-            if(availabilityRepository.existsByUserAndDayOfWeek(user, newDayOfWeek)){   // ← use parsed enum
-                logger.warn("[updateAvailability] Availability already set for {}", newDayOfWeek);
-                throw new AvailabilityAlreadyExistsException("Availability already set for "+newDayOfWeek);
+        // If date is provided, this is a one-time override
+        if (date != null) {
+            logger.info("[updateAvailability] Converting to one-time override for date={}", date);
+            existingAvailability.setDate(date);
+            existingAvailability.setDayOfWeek(null);
+
+            // Check if user already has an override for this date
+            AvailabilityEntity existingForDate = availabilityRepository.findByUserAndDate(user, date);
+            if (existingForDate != null && !existingForDate.getId().equals(id)) {
+                logger.warn("[updateAvailability] One-time availability already exists for user id={} on date={}", user.getId(), date);
+                throw new AvailabilityAlreadyExistsException("Availability already set for " + date);
             }
+        } else {
+            // Recurring mode — clear date if present
+            DayOfWeek newDayOfWeek;
+            try {
+                newDayOfWeek = DayOfWeek.valueOf(dto.getDayOfWeek().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                logger.warn("[updateAvailability] Invalid dayOfWeek value: {}", dto.getDayOfWeek());
+                throw new BadRequestException("Day of week is required");
+            }
+
+            if (!existingAvailability.getDayOfWeek().equals(newDayOfWeek)) {
+                if (availabilityRepository.existsByUserAndDayOfWeek(user, newDayOfWeek)) {
+                    logger.warn("[updateAvailability] Availability already set for {}", newDayOfWeek);
+                    throw new AvailabilityAlreadyExistsException("Availability already set for " + newDayOfWeek);
+                }
+            }
+
+            existingAvailability.setDayOfWeek(newDayOfWeek);
+            existingAvailability.setDate(null); // clear date if switching back to recurring
         }
 
-        existingAvailability.setDayOfWeek(newDayOfWeek);   // ← set parsed enum
         existingAvailability.setStartTime(dto.getStartTime());
         existingAvailability.setEndTime(dto.getEndTime());
 
         AvailabilityEntity savedEntity = availabilityRepository.save(existingAvailability);
-        logger.info("[updateAvailability] Availability updated: id={}, new day={}, startTime={}, endTime={}",
-                savedEntity.getId(), savedEntity.getDayOfWeek(), savedEntity.getStartTime(), savedEntity.getEndTime());
+        logger.info("[updateAvailability] Availability updated: id={}, day={}, date={}, startTime={}, endTime={}",
+                savedEntity.getId(), savedEntity.getDayOfWeek(), savedEntity.getDate(), savedEntity.getStartTime(), savedEntity.getEndTime());
         return AvailabilityMapper.toDTO(savedEntity);
     }
 

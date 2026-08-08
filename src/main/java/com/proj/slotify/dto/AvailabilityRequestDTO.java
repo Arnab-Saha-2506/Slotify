@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
 
 @Getter
@@ -22,5 +23,7 @@ public class AvailabilityRequestDTO {
 
     @NotNull(message = "End time is required")
     private LocalTime endTime;
+
+    private LocalDate date;
 
 }

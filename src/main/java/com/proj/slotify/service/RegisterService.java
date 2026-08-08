@@ -9,4 +9,5 @@ public interface RegisterService {
 
     RegisterResponseDTO registerUser(RegisterRequestDTO dto) throws Exception;
     LoginResponseDTO loginUser(LoginRequestDTO dto) throws Exception;
+    void logout() throws Exception;
 }

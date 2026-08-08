@@ -6,6 +6,8 @@ import com.proj.slotify.dto.RegisterRequestDTO;
 import com.proj.slotify.dto.RegisterResponseDTO;
 import com.proj.slotify.entity.UserEntity;
 import com.proj.slotify.exception.BadRequestException;
+import com.proj.slotify.exception.InvalidCredsException;
+import com.proj.slotify.exception.UserAlreadyExistsException;
 import com.proj.slotify.exception.UserNotFoundException;
 import com.proj.slotify.mapper.RegisterMapper;
 import com.proj.slotify.repository.UserRepository;
@@ -34,7 +36,7 @@ public class RegisterServiceImpl implements RegisterService{
 
         if(userRepository.existsByEmail(dto.getEmail())){
             logger.warn("[registerUser] Registration failed: email {} already exists", dto.getEmail());
-            throw new BadRequestException("User already exists with email: "+dto.getEmail());
+            throw new UserAlreadyExistsException("User already exists with email: "+dto.getEmail());
         }
         logger.info("[registerUser] Email {} is available, proceeding with registration", dto.getEmail());
 
@@ -67,13 +69,13 @@ public class RegisterServiceImpl implements RegisterService{
 
         if(userDetails == null){
             logger.warn("[loginUser] Login failed: user not found for email={}", dto.getEmail());
-            throw new UserNotFoundException("User doesn't exist, Register!!!");
+            throw new InvalidCredsException("User doesn't exist, Register!!!");
         }
         logger.info("[loginUser] User found: id={}, email={}", userDetails.getId(), userDetails.getEmail());
 
         if(!passwordEncoder.matches(dto.getPassword(), userDetails.getPassword())){
             logger.warn("[loginUser] Invalid password for email={}", dto.getEmail());
-            throw new BadRequestException("Invalid password");
+            throw new InvalidCredsException("Invalid password");
         }
         logger.info("[loginUser] Password matched for email={}", dto.getEmail());
 
@@ -83,5 +85,11 @@ public class RegisterServiceImpl implements RegisterService{
         return LoginResponseDTO.builder()
                 .token(token)
                 .build();
+    }
+
+    @Override
+    public void logout() throws Exception{
+        logger.info("[logout] Logout requested...");
+        logger.info("[logout] Logout succesfull!");
     }
 }

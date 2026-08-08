@@ -1,5 +1,6 @@
 package com.proj.slotify.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -13,8 +14,8 @@ import java.time.LocalTime;
 @Builder
 public class AvailabilityRequestDTO {
 
-    @NotNull(message = "Day of week is required")
-    private DayOfWeek dayOfWeek;
+    @NotBlank(message = "Day of week is required")
+    private String dayOfWeek;
 
     @NotNull(message = "Start time is required")
     private LocalTime startTime;

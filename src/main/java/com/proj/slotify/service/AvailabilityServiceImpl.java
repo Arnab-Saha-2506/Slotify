@@ -4,10 +4,7 @@ import com.proj.slotify.dto.AvailabilityRequestDTO;
 import com.proj.slotify.dto.AvailabilityResponseDTO;
 import com.proj.slotify.entity.AvailabilityEntity;
 import com.proj.slotify.entity.UserEntity;
-import com.proj.slotify.exception.AvailabilityNotFoundException;
-import com.proj.slotify.exception.BadRequestException;
-import com.proj.slotify.exception.UnauthorizedException;
-import com.proj.slotify.exception.UserNotFoundException;
+import com.proj.slotify.exception.*;
 import com.proj.slotify.mapper.AvailabilityMapper;
 import com.proj.slotify.repository.AvailabilityRepository;
 import com.proj.slotify.repository.UserRepository;
@@ -17,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
 import java.util.List;
 
 @Service
@@ -28,8 +26,8 @@ public class AvailabilityServiceImpl implements AvailabilityService{
     private final UserRepository userRepository;
 
     @Override
-    public AvailabilityResponseDTO setAvailability(AvailabilityRequestDTO dto) throws Exception{
-        logger.info("[setAvailability] day={}, startTime={}, endTime={}", dto.getDayOfWeek(), dto.getStartTime(), dto.getEndTime());
+    public List<AvailabilityResponseDTO> setAvailability(List<AvailabilityRequestDTO> dtos) throws Exception{
+        logger.info("[setAvailability] Processing {} availability records", dtos.size());
 
         String email = (String) SecurityContextHolder
                 .getContext()
@@ -46,21 +44,65 @@ public class AvailabilityServiceImpl implements AvailabilityService{
 
         logger.info("[setAvailability] User found: id={}", user.getId());
 
+        List<AvailabilityResponseDTO> responses = dtos.stream()
+                .map(dto->{
+                    try {
+                        return saveSingleAvailability(dto, user);
+                    }
+                    catch (AvailabilityAlreadyExistsException e){
+                        logger.warn("[setAvailability] Duplicate availability for day={}: {}", dto.getDayOfWeek(), e.getMessage());
+                        throw e;  // re-throw as 409 - don't wrap it again
+                    }
+                    catch (Exception e){
+                        logger.error("[setAvailability] Failed to save availability for day={}: {}", dto.getDayOfWeek(), e.getMessage());
+                        throw e;
+                    }
+                })
+                .toList();
+
+//        if(!dto.getStartTime().isBefore(dto.getEndTime())){
+//            logger.warn("[setAvailability] Invalid time range: startTime={} is not before endTime={}", dto.getStartTime(), dto.getEndTime());
+//            throw new BadRequestException("Start time must be before End time");
+//        }
+//
+//        if(availabilityRepository.existsByUserAndDayOfWeek(user, dto.getDayOfWeek())){
+//            logger.warn("[setAvailability] Availability already exists for user id={} on {}", user.getId(), dto.getDayOfWeek());
+//            throw new BadRequestException("Availability already set for "+dto.getDayOfWeek());
+//        }
+//
+//        AvailabilityEntity entity = AvailabilityMapper.toEntity(dto, user);
+//
+//        AvailabilityEntity savedEntity = availabilityRepository.save(entity);
+
+        logger.info("[setAvailability] Successfully saved {}/{} availability records", responses.size(), dtos.size());
+        return responses;
+    }
+
+    private AvailabilityResponseDTO saveSingleAvailability(AvailabilityRequestDTO dto, UserEntity user) {
+        DayOfWeek dayOfWeek;
+        try {
+            dayOfWeek = DayOfWeek.valueOf(dto.getDayOfWeek().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            logger.warn("[saveSingleAvailability] Invalid dayOfWeek value: {}", dto.getDayOfWeek());
+            throw new BadRequestException("Day of week is required");
+        }
+
+        logger.info("[saveSingleAvailability] day={}, startTime={}, endTime={}", dayOfWeek, dto.getStartTime(), dto.getEndTime());
+
         if(!dto.getStartTime().isBefore(dto.getEndTime())){
-            logger.warn("[setAvailability] Invalid time range: startTime={} is not before endTime={}", dto.getStartTime(), dto.getEndTime());
+            logger.warn("[saveSingleAvailability] Invalid time range: startTime={} is not before endTime={}", dto.getStartTime(), dto.getEndTime());
             throw new BadRequestException("Start time must be before End time");
         }
 
-        if(availabilityRepository.existsByUserAndDayOfWeek(user, dto.getDayOfWeek())){
-            logger.warn("[setAvailability] Availability already exists for user id={} on {}", user.getId(), dto.getDayOfWeek());
-            throw new BadRequestException("Availability already set for "+dto.getDayOfWeek());
+        if(availabilityRepository.existsByUserAndDayOfWeek(user, dayOfWeek)){   // ← use parsed enum
+            logger.warn("[saveSingleAvailability] Availability already exists for user id={} on {}", user.getId(), dayOfWeek);
+            throw new AvailabilityAlreadyExistsException("Availability already set for "+dayOfWeek);
         }
 
-        AvailabilityEntity entity = AvailabilityMapper.toEntity(dto, user);
-
+        AvailabilityEntity entity = AvailabilityMapper.toEntity(dto, user);   // mapper also parses internally
         AvailabilityEntity savedEntity = availabilityRepository.save(entity);
 
-        logger.info("[setAvailability] Availability saved: id={}, userId={}, day={}, startTime={}, endTime={}",
+        logger.info("[saveSingleAvailability] Availability saved: id={}, userId={}, day={}, startTime={}, endTime={}",
                 savedEntity.getId(), user.getId(), savedEntity.getDayOfWeek(), savedEntity.getStartTime(), savedEntity.getEndTime());
 
         return AvailabilityMapper.toDTO(savedEntity);
@@ -105,6 +147,15 @@ public class AvailabilityServiceImpl implements AvailabilityService{
             throw new UserNotFoundException("User not found with this mail id: "+ email);
         }
 
+        // Parse dayOfWeek string to enum FIRST
+        DayOfWeek newDayOfWeek;
+        try {
+            newDayOfWeek = DayOfWeek.valueOf(dto.getDayOfWeek().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            logger.warn("[updateAvailability] Invalid dayOfWeek value: {}", dto.getDayOfWeek());
+            throw new BadRequestException("Day of week is required");
+        }
+
         AvailabilityEntity existingAvailability = availabilityRepository.findById(id).orElse(null);
         if(existingAvailability == null){
             logger.warn("[updateAvailability] Availability not found: id={}", id);
@@ -123,14 +174,15 @@ public class AvailabilityServiceImpl implements AvailabilityService{
             throw new BadRequestException("Start time must be before End time");
         }
 
-        if(!existingAvailability.getDayOfWeek().equals(dto.getDayOfWeek())){
-            if(availabilityRepository.existsByUserAndDayOfWeek(user, dto.getDayOfWeek())){
-                logger.warn("[updateAvailability] Availability already set for {}", dto.getDayOfWeek());
-                throw new BadRequestException("Availability already set for "+dto.getDayOfWeek());
+        // Compare using the parsed enum, not the raw string
+        if(!existingAvailability.getDayOfWeek().equals(newDayOfWeek)){
+            if(availabilityRepository.existsByUserAndDayOfWeek(user, newDayOfWeek)){   // ← use parsed enum
+                logger.warn("[updateAvailability] Availability already set for {}", newDayOfWeek);
+                throw new AvailabilityAlreadyExistsException("Availability already set for "+newDayOfWeek);
             }
         }
 
-        existingAvailability.setDayOfWeek(dto.getDayOfWeek());
+        existingAvailability.setDayOfWeek(newDayOfWeek);   // ← set parsed enum
         existingAvailability.setStartTime(dto.getStartTime());
         existingAvailability.setEndTime(dto.getEndTime());
 

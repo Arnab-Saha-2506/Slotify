@@ -44,6 +44,7 @@ public class SecurityConfig {
                                 "/webjars/**",
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/login",
+                                "/api/v1/auth/logout",
                                 "/api/v1/users/*/slots"
                         ).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/bookings").permitAll()

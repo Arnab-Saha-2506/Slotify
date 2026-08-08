@@ -13,6 +13,7 @@ import com.proj.slotify.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cglib.core.Local;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
@@ -78,11 +79,15 @@ public class SlotServiceImpl implements SlotService{
         List<BookingEntity> bookedSlots = bookingRepository.findBookedByOwner(userId);
         logger.info("[getAvailableSlots] Found {} booked slots for user", bookedSlots.size());
 
+        LocalDateTime now = LocalDateTime.now();
 
-        logger.info("[getAvailableSlots] Returning {} available slots out of {}", bookedSlots.size(), allSlots.size());
-        return allSlots.stream()
-                .filter(slot -> !isSlotBooked(slot, bookedSlots))
-                .toList();
+        List<SlotResponseDTO> availableSlots = allSlots.stream()
+                        .filter(slot -> !isSlotBooked(slot, bookedSlots))
+                                .filter(slot -> slot.getEndTime().isAfter(now))
+                                        .toList();
+
+        logger.info("[getAvailableSlots] Returning {} available slots out of {}", availableSlots.size(), allSlots.size());
+        return availableSlots;
     }
 
     private boolean isSlotBooked(SlotResponseDTO slot, List<BookingEntity> bookedSlots){

@@ -6,6 +6,7 @@ import com.proj.slotify.entity.AvailabilityEntity;
 import com.proj.slotify.entity.UserEntity;
 import com.proj.slotify.util.IdGenerator;
 
+import java.time.DayOfWeek;
 import java.util.UUID;
 
 public class AvailabilityMapper {
@@ -14,7 +15,7 @@ public class AvailabilityMapper {
         return AvailabilityEntity.builder()
 //                .id(UUID.randomUUID().toString().substring(0, 8))
                 .id(IdGenerator.generateForAvailability())
-                .dayOfWeek(dto.getDayOfWeek())
+                .dayOfWeek(DayOfWeek.valueOf(dto.getDayOfWeek().toUpperCase()))
                 .startTime(dto.getStartTime())
                 .endTime(dto.getEndTime())
                 .user(user)

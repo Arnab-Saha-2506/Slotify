@@ -21,13 +21,13 @@ public class AvailabilityController {
     private final AvailabilityService availabilityService;
 
     @PostMapping
-    public ResponseEntity<AvailabilityResponseDTO> setAvailability(@Valid @RequestBody AvailabilityRequestDTO dto) throws Exception{
-        logger.info("[AvailabilityController] POST /api/v1/availability - day={}", dto.getDayOfWeek());
+    public ResponseEntity<List<AvailabilityResponseDTO>> setAvailability(@Valid @RequestBody List<AvailabilityRequestDTO> dtos) throws Exception{
+        logger.info("[AvailabilityController] POST /api/v1/availability - batch of {} records", dtos.size());
 
-        AvailabilityResponseDTO responseDTO = availabilityService.setAvailability(dto);
-        logger.info("[AvailabilityController] Availability created: id={}, day={}", responseDTO.getId(), responseDTO.getDay());
+        List<AvailabilityResponseDTO> responseDTOs = availabilityService.setAvailability(dtos);
+        logger.info("[AvailabilityController] Availability created: {} records", responseDTOs.size());
 
-        return ResponseEntity.status(201).body(responseDTO);
+        return ResponseEntity.status(201).body(responseDTOs);
     }
 
     @GetMapping

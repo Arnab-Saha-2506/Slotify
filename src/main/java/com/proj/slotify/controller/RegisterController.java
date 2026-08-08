@@ -43,5 +43,11 @@ public class RegisterController {
 
         return ResponseEntity.ok().body(response);
     }
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout() throws Exception{
+        logger.info("[RegisterController] POST /api/v1/auth/logout");
+        registerService.logout();
+        return ResponseEntity.ok().build();
+    }
 
 }

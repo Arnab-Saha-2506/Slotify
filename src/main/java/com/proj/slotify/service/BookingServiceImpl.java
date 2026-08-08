@@ -3,11 +3,13 @@ package com.proj.slotify.service;
 import com.proj.slotify.dto.BookingRequestDTO;
 import com.proj.slotify.dto.BookingResponseDTO;
 import com.proj.slotify.dto.MyBookingListResponseDTO;
+import com.proj.slotify.entity.AvailabilityEntity;
 import com.proj.slotify.entity.BookingEntity;
 import com.proj.slotify.entity.UserEntity;
 import com.proj.slotify.enums.BookingStatus;
 import com.proj.slotify.exception.*;
 import com.proj.slotify.mapper.BookingMapper;
+import com.proj.slotify.repository.AvailabilityRepository;
 import com.proj.slotify.repository.BookingRepository;
 import com.proj.slotify.repository.UserRepository;
 import jakarta.transaction.Transactional;
@@ -17,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -27,6 +30,7 @@ public class BookingServiceImpl implements BookingService{
     private static final Logger logger = LoggerFactory.getLogger(BookingServiceImpl.class);
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
+    private final AvailabilityRepository availabilityRepository;
 
     @Override
     @Transactional
@@ -46,6 +50,26 @@ public class BookingServiceImpl implements BookingService{
 
         LocalDateTime endTime = dto.getStartTime().plusMinutes(dto.getDuration());
         logger.info("[createBooking] Owner found: id={}, email={}", ownerDetails.getId(), ownerDetails.getEmail());
+
+        // Check against owner's availability
+        DayOfWeek dayOfWeek = dto.getStartTime().getDayOfWeek();
+        AvailabilityEntity availability = availabilityRepository.findByUserAndDayOfWeek(ownerDetails, dayOfWeek);
+
+        if (availability == null) {
+            logger.warn("[createBooking] Owner id={} has no availability on {}", ownerDetails.getId(), dayOfWeek);
+            throw new BadRequestException("Owner is not available on " + dayOfWeek);
+        }
+
+        LocalDateTime availabilityStart = dto.getStartTime().toLocalDate().atTime(availability.getStartTime());
+        LocalDateTime availabilityEnd = dto.getStartTime().toLocalDate().atTime(availability.getEndTime());
+
+        boolean withinAvailability = !dto.getStartTime().isBefore(availabilityStart) && !endTime.isAfter(availabilityEnd);
+
+        if (!withinAvailability) {
+            logger.warn("[createBooking] Slot {}-{} is outside owner's availability window {}-{}",
+                    dto.getStartTime(), endTime, availabilityStart, availabilityEnd);
+            throw new BadRequestException("Selected slot is outside owner's availability hours");
+        }
 
         //Check conflicts
         List<BookingEntity> conflicts = bookingRepository.findConflictingBookings(dto.getOwnerId(), dto.getStartTime(), endTime);

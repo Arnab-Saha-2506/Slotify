@@ -1,0 +1,14 @@
+.git
+.gitignore
+.idea
+.vscode
+# build/   ← REMOVE THIS LINE
+gradle/
+gradlew
+gradlew.bat
+settings.gradle
+*.iml
+*.ipr
+*.iws
+.env
+.DS_Store

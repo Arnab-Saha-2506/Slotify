@@ -52,10 +52,12 @@ public class AvailabilityServiceImpl implements AvailabilityService {
                     try {
                         return saveSingleAvailability(dto, user);
                     } catch (AvailabilityAlreadyExistsException e) {
-                        logger.warn("[setAvailability] Duplicate availability for day={}: {}", dto.getDayOfWeek(), e.getMessage());
+                        logger.warn("[setAvailability] Duplicate availability for day={}: {}", dto.getDayOfWeek(),
+                                e.getMessage());
                         throw e;
                     } catch (Exception e) {
-                        logger.error("[setAvailability] Failed to save availability for day={}: {}", dto.getDayOfWeek(), e.getMessage());
+                        logger.error("[setAvailability] Failed to save availability for day={}: {}", dto.getDayOfWeek(),
+                                e.getMessage());
                         throw e;
                     }
                 })
@@ -74,10 +76,12 @@ public class AvailabilityServiceImpl implements AvailabilityService {
             throw new BadRequestException("Day of week is required");
         }
 
-        logger.info("[saveSingleAvailability] day={}, startTime={}, endTime={}", dayOfWeek, dto.getStartTime(), dto.getEndTime());
+        logger.info("[saveSingleAvailability] day={}, startTime={}, endTime={}", dayOfWeek, dto.getStartTime(),
+                dto.getEndTime());
 
         if (!dto.getStartTime().isBefore(dto.getEndTime())) {
-            logger.warn("[saveSingleAvailability] Invalid time range: startTime={} is not before endTime={}", dto.getStartTime(), dto.getEndTime());
+            logger.warn("[saveSingleAvailability] Invalid time range: startTime={} is not before endTime={}",
+                    dto.getStartTime(), dto.getEndTime());
             throw new BadRequestException("Start time must be before End time");
         }
 
@@ -94,7 +98,8 @@ public class AvailabilityServiceImpl implements AvailabilityService {
         AvailabilityEntity entity = AvailabilityMapper.toEntity(dto, user);
         AvailabilityEntity savedEntity = availabilityRepository.save(entity);
 
-        logger.info("[saveSingleAvailability] Availability saved: id={}, userId={}, day={}, date={}, startTime={}, endTime={}",
+        logger.info(
+                "[saveSingleAvailability] Availability saved: id={}, userId={}, day={}, date={}, startTime={}, endTime={}",
                 savedEntity.getId(), user.getId(), savedEntity.getDayOfWeek(), savedEntity.getDate(),
                 savedEntity.getStartTime(), savedEntity.getEndTime());
 
@@ -117,7 +122,8 @@ public class AvailabilityServiceImpl implements AvailabilityService {
         }
 
         List<AvailabilityEntity> listEntities = availabilityRepository.findByUser(user);
-        logger.info("[getAvailability] Found {} availability records for user id={}", listEntities.size(), user.getId());
+        logger.info("[getAvailability] Found {} availability records for user id={}", listEntities.size(),
+                user.getId());
 
         return listEntities.stream()
                 .map(AvailabilityMapper::toDTO)
@@ -162,13 +168,13 @@ public class AvailabilityServiceImpl implements AvailabilityService {
     }
 
     @Override
-    public AvailabilityResponseDTO updateAvailability(String id, AvailabilityRequestDTO dto, LocalDate date) throws Exception {
+    public AvailabilityResponseDTO updateAvailability(String id, AvailabilityRequestDTO dto) throws Exception {
         String email = (String) SecurityContextHolder
                 .getContext()
                 .getAuthentication()
                 .getPrincipal();
 
-        logger.info("[updateAvailability] Updating availability id={} for email={}, date={}", id, email, date);
+        logger.info("[updateAvailability] Updating availability id={} for email={}", id, email);
 
         UserEntity user = userRepository.findByEmail(email);
 
@@ -177,63 +183,52 @@ public class AvailabilityServiceImpl implements AvailabilityService {
             throw new UserNotFoundException("User not found with this mail id: " + email);
         }
 
+        // Parse dayOfWeek string to enum FIRST
+        DayOfWeek newDayOfWeek;
+        try {
+            newDayOfWeek = DayOfWeek.valueOf(dto.getDayOfWeek().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            logger.warn("[updateAvailability] Invalid dayOfWeek value: {}", dto.getDayOfWeek());
+            throw new BadRequestException("Day of week is required");
+        }
+
         AvailabilityEntity existingAvailability = availabilityRepository.findById(id).orElse(null);
         if (existingAvailability == null) {
             logger.warn("[updateAvailability] Availability not found: id={}", id);
             throw new AvailabilityNotFoundException("Availability not found with id: " + id);
         }
 
-        logger.info("[updateAvailability] Availability found: id={}, ownerId={}", existingAvailability.getId(), existingAvailability.getUser().getId());
+        logger.info("[updateAvailability] Availability found: id={}, ownerId={}", existingAvailability.getId(),
+                existingAvailability.getUser().getId());
         if (!existingAvailability.getUser().getId().equals(user.getId())) {
-            logger.warn("[updateAvailability] Unauthorized update attempt: user id={} tried to update availability id={} owned by {}",
+            logger.warn(
+                    "[updateAvailability] Unauthorized update attempt: user id={} tried to update availability id={} owned by {}",
                     user.getId(), id, existingAvailability.getUser().getId());
             throw new UnauthorizedException("You are not authorized to update this Availability.");
         }
 
         if (!dto.getStartTime().isBefore(dto.getEndTime())) {
-            logger.warn("[updateAvailability] Invalid time range: startTime={} is not before endTime={}", dto.getStartTime(), dto.getEndTime());
+            logger.warn("[updateAvailability] Invalid time range: startTime={} is not before endTime={}",
+                    dto.getStartTime(), dto.getEndTime());
             throw new BadRequestException("Start time must be before End time");
         }
 
-        // If date is provided, this is a one-time override
-        if (date != null) {
-            logger.info("[updateAvailability] Converting to one-time override for date={}", date);
-            existingAvailability.setDate(date);
-            existingAvailability.setDayOfWeek(null);
-
-            // Check if user already has an override for this date (excluding current record)
-            AvailabilityEntity existingForDate = availabilityRepository.findByUserAndDate(user, date);
-            if (existingForDate != null && !existingForDate.getId().equals(id)) {
-                logger.warn("[updateAvailability] One-time availability already exists for user id={} on date={}", user.getId(), date);
-                throw new AvailabilityAlreadyExistsException("Availability already set for " + date);
+        // Compare using the parsed enum, not the raw string
+        if (!existingAvailability.getDayOfWeek().equals(newDayOfWeek)) {
+            if (availabilityRepository.existsByUserAndDayOfWeek(user, newDayOfWeek)) {
+                logger.warn("[updateAvailability] Availability already set for {}", newDayOfWeek);
+                throw new AvailabilityAlreadyExistsException("Availability already set for " + newDayOfWeek);
             }
-        } else {
-            // Recurring mode — clear date if present
-            DayOfWeek newDayOfWeek;
-            try {
-                newDayOfWeek = DayOfWeek.valueOf(dto.getDayOfWeek().toUpperCase());
-            } catch (IllegalArgumentException e) {
-                logger.warn("[updateAvailability] Invalid dayOfWeek value: {}", dto.getDayOfWeek());
-                throw new BadRequestException("Day of week is required");
-            }
-
-            if (!newDayOfWeek.equals(existingAvailability.getDayOfWeek())) {
-                if (availabilityRepository.existsByUserAndDayOfWeek(user, newDayOfWeek)) {
-                    logger.warn("[updateAvailability] Availability already set for {}", newDayOfWeek);
-                    throw new AvailabilityAlreadyExistsException("Availability already set for " + newDayOfWeek);
-                }
-            }
-
-            existingAvailability.setDayOfWeek(newDayOfWeek);
-            existingAvailability.setDate(null);
         }
 
+        existingAvailability.setDayOfWeek(newDayOfWeek);
+        existingAvailability.setDate(null); // clear date if present
         existingAvailability.setStartTime(dto.getStartTime());
         existingAvailability.setEndTime(dto.getEndTime());
 
         AvailabilityEntity savedEntity = availabilityRepository.save(existingAvailability);
-        logger.info("[updateAvailability] Availability updated: id={}, day={}, date={}, startTime={}, endTime={}",
-                savedEntity.getId(), savedEntity.getDayOfWeek(), savedEntity.getDate(), savedEntity.getStartTime(), savedEntity.getEndTime());
+        logger.info("[updateAvailability] Availability updated: id={}, new day={}, startTime={}, endTime={}",
+                savedEntity.getId(), savedEntity.getDayOfWeek(), savedEntity.getStartTime(), savedEntity.getEndTime());
         return AvailabilityMapper.toDTO(savedEntity);
     }
 
@@ -257,9 +252,11 @@ public class AvailabilityServiceImpl implements AvailabilityService {
             logger.warn("[deleteAvailability] Availability not found: id={}", id);
             throw new AvailabilityNotFoundException("Availability not found with id: " + id);
         }
-        logger.info("[deleteAvailability] Availability found: id={}, ownerId={}", existingAvailability.getId(), existingAvailability.getUser().getId());
+        logger.info("[deleteAvailability] Availability found: id={}, ownerId={}", existingAvailability.getId(),
+                existingAvailability.getUser().getId());
         if (!existingAvailability.getUser().getId().equals(user.getId())) {
-            logger.warn("[deleteAvailability] Unauthorized delete attempt: user id={} tried to delete availability id={}",
+            logger.warn(
+                    "[deleteAvailability] Unauthorized delete attempt: user id={} tried to delete availability id={}",
                     user.getId(), id);
             throw new UnauthorizedException("You are not authorized to delete this Availability.");
         }

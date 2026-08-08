@@ -23,7 +23,8 @@ public class AvailabilityController {
     private final AvailabilityService availabilityService;
 
     @PostMapping
-    public ResponseEntity<List<AvailabilityResponseDTO>> setAvailability(@Valid @RequestBody List<AvailabilityRequestDTO> dtos) throws Exception {
+    public ResponseEntity<List<AvailabilityResponseDTO>> setAvailability(
+            @Valid @RequestBody List<AvailabilityRequestDTO> dtos) throws Exception {
         logger.info("[AvailabilityController] POST /api/v1/availability - batch of {} records", dtos.size());
 
         List<AvailabilityResponseDTO> responseDTOs = availabilityService.setAvailability(dtos);
@@ -48,7 +49,8 @@ public class AvailabilityController {
         logger.info("[AvailabilityController] GET /api/v1/availability/date/{}", date);
 
         List<AvailabilityResponseDTO> responseDTOs = availabilityService.getAvailabilityByDate(date);
-        logger.info("[AvailabilityController] Returning {} availability records for date={}", responseDTOs.size(), date);
+        logger.info("[AvailabilityController] Returning {} availability records for date={}", responseDTOs.size(),
+                date);
 
         return ResponseEntity.ok().body(responseDTOs);
     }
@@ -56,11 +58,10 @@ public class AvailabilityController {
     @PutMapping("/{id}")
     public ResponseEntity<AvailabilityResponseDTO> updateAvailability(
             @PathVariable String id,
-            @Valid @RequestBody AvailabilityRequestDTO dto,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) throws Exception {
-        logger.info("[AvailabilityController] PUT /api/v1/availability/{} with date={}", id, date);
+            @Valid @RequestBody AvailabilityRequestDTO dto) throws Exception {
+        logger.info("[AvailabilityController] PUT /api/v1/availability/{}", id);
 
-        AvailabilityResponseDTO responseDTO = availabilityService.updateAvailability(id, dto, date);
+        AvailabilityResponseDTO responseDTO = availabilityService.updateAvailability(id, dto);
         return ResponseEntity.ok().body(responseDTO);
     }
 

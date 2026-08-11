@@ -11,16 +11,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/health")
+@RequestMapping
 public class HealthController {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public HealthController(JdbcTemplate jdbcTemplate){
+    public HealthController(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    @GetMapping
+    @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> health() {
         Map<String, Object> response = new HashMap<>();
         response.put("status", "OK");
@@ -29,8 +29,8 @@ public class HealthController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping
-    public ResponseEntity<String> ping(){
+    @GetMapping("/ping")
+    public ResponseEntity<String> ping() {
         jdbcTemplate.execute("SELECT 1");
         return ResponseEntity.ok("PONG");
     }

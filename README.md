@@ -589,7 +589,7 @@ Planned improvements include:
 
 # 🤝 Acknowledgement
 
-A special thanks to **Arnab Bhadra** for his continuous support, guidance, and valuable feedback throughout the development of Slotify.
+A special thanks to **[Arnab Bhadra](https://github.com/arnab078)** for his continuous support, guidance, and valuable feedback throughout the development of Slotify.
 
 Really appreciate the help in making this project better! 🙌
 

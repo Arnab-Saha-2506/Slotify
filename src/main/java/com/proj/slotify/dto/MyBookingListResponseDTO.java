@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 public class MyBookingListResponseDTO {
     private String bookingId;
     private String guestName;
-    private LocalDateTime startTime;
-    private LocalDateTime endTime;
+    private String startTime;
+    private String endTime;
     private String status;
 }

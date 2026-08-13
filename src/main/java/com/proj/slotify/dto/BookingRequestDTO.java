@@ -4,7 +4,7 @@ package com.proj.slotify.dto;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Getter
 @Setter
@@ -23,7 +23,7 @@ public class BookingRequestDTO {
     private String guestEmail;
 
     @NotNull(message = "Start time is required")
-    private LocalDateTime startTime;
+    private OffsetDateTime startTime;
 
 //    @NotNull(message = "End time is required")
 //    private LocalDateTime endTime;

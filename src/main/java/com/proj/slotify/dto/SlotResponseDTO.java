@@ -2,7 +2,8 @@ package com.proj.slotify.dto;
 
 import lombok.*;
 
-import java.time.LocalDateTime;
+//import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 
 @Getter
@@ -12,6 +13,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class SlotResponseDTO {
 
-    private LocalDateTime startTime;
-    private LocalDateTime endTime;
+    private ZonedDateTime startTime;
+    private ZonedDateTime endTime;
 }

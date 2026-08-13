@@ -35,10 +35,11 @@ public class UserController {
     public ResponseEntity<List<SlotResponseDTO>> getAvailableSlots(
             @PathVariable String userId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam(required = false) Integer duration) throws Exception{
-        logger.info("[UserController] GET /api/v1/users/{}/slots - date={}, duration={}", userId, date, duration);
+            @RequestParam(required = false) Integer duration,
+            @RequestParam(required = false) String timezone) throws Exception{
+        logger.info("[UserController] GET /api/v1/users/{}/slots - date={}, duration={}, timezone={}", userId, date, duration, timezone);
 
-        List<SlotResponseDTO> slotsList = slotService.getAvailableSlots(userId, date, duration);
+        List<SlotResponseDTO> slotsList = slotService.getAvailableSlots(userId, date, duration, timezone);
         logger.info("[UserController] Returning {} slots for user {}", slotsList.size(), userId);
 
         return ResponseEntity.ok().body(slotsList);

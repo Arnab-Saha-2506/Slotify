@@ -13,12 +13,9 @@ import com.proj.slotify.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.cglib.core.Local;
 import org.springframework.stereotype.Service;
 
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,10 +27,24 @@ public class SlotServiceImpl implements SlotService{
     private final UserRepository userRepository;
     private final AvailabilityRepository availabilityRepository;
     private final BookingRepository bookingRepository;
+    public static final String DEFAULT_TIMEZONE = "Asia/Kolkata";
 
     @Override
-    public List<SlotResponseDTO> getAvailableSlots(String userId, LocalDate date, Integer duration) throws Exception {
-        logger.info("[getAvailableSlots] userId={}, date={}, duration={}", userId, date, duration);
+    public List<SlotResponseDTO> getAvailableSlots(String userId, LocalDate date, Integer duration, String timezone) throws Exception {
+        logger.info("[getAvailableSlots] userId={}, date={}, duration={}, timezone={}", userId, date, duration, timezone);
+
+        String targetTimezone = (timezone != null && !timezone.isBlank()) ? timezone : DEFAULT_TIMEZONE;
+        ZoneId targetZone;
+        try{
+            targetZone = ZoneId.of(targetTimezone);
+        }
+        catch (DateTimeException e){
+            logger.warn("[getAvailableSlots] Invalid timezone: {}", timezone);
+            throw new BadRequestException("Invalid timezone: "+timezone);
+        }
+
+        logger.info("[getAvailableSlots] Using target timezone: {}", targetZone);
+
         UserEntity user = userRepository.findById(userId).orElse(null);
 
         if(user == null){
@@ -75,55 +86,102 @@ public class SlotServiceImpl implements SlotService{
         List<SlotResponseDTO> allSlots = generateSlots(availability, date, slotDuration);
         logger.info("[getAvailableSlots] Generated {} total slots", allSlots.size());
 
-
         List<BookingEntity> bookedSlots = bookingRepository.findBookedByOwner(userId);
         logger.info("[getAvailableSlots] Found {} booked slots for user", bookedSlots.size());
 
-        LocalDateTime now = LocalDateTime.now();
-
+// Filter booked and past slots BEFORE converting to requester timezone
         List<SlotResponseDTO> availableSlots = allSlots.stream()
-                        .filter(slot -> !isSlotBooked(slot, bookedSlots))
-                                .filter(slot -> slot.getEndTime().isAfter(now))
-                                        .toList();
+                .filter(slot -> !isSlotBooked(slot, bookedSlots))
+                .filter(slot -> slot.getEndTime().toInstant().isAfter(Instant.now()))
+                .toList();
 
         logger.info("[getAvailableSlots] Returning {} available slots out of {}", availableSlots.size(), allSlots.size());
+
+// Convert available slots to requester's timezone
+        ZoneId hostZone = ZoneId.of(availability.getUser().getTimezone());
+        if (!targetZone.equals(hostZone)) {
+            availableSlots = availableSlots.stream()
+                    .map(slot -> SlotResponseDTO.builder()
+                            .startTime(slot.getStartTime().withZoneSameInstant(targetZone))
+                            .endTime(slot.getEndTime().withZoneSameInstant(targetZone))
+                            .build())
+                    .toList();
+            logger.info("[getAvailableSlots] Converted slots from {} to {}", hostZone, targetZone);
+        }
+
         return availableSlots;
     }
 
     private boolean isSlotBooked(SlotResponseDTO slot, List<BookingEntity> bookedSlots){
         for(BookingEntity booking : bookedSlots){
-            if(slot.getStartTime().isBefore(booking.getEndTime())
-            && slot.getEndTime().isAfter(booking.getStartTime())){
+
+            Instant slotStart = slot.getStartTime().toInstant();
+            Instant slotEnd = slot.getEndTime().toInstant();
+            Instant bookingStart = booking.getStartTime();
+            Instant bookingEnd = booking.getEndTime();
+
+            if(slotStart.isBefore(bookingEnd)
+            && slotEnd.isAfter(bookingStart)){
                 logger.debug("[isSlotBooked] Slot {}-{} overlaps with booking {}-{} (bookingId={})",
-                        slot.getStartTime(), slot.getEndTime(),
-                        booking.getStartTime(), booking.getEndTime(), booking.getBookingId());
+                        slotStart, slotEnd,
+                        bookingStart, bookingEnd, booking.getBookingId());
                 return true;
             }
         }
         return false;
     }
 
+//    private List<SlotResponseDTO> generateSlotsv1(AvailabilityEntity availability, LocalDate date, int duration){
+//        List<SlotResponseDTO> slots = new ArrayList<>();
+//
+//        LocalDateTime slotStart = date.atTime(availability.getStartTime());
+//        LocalDateTime slotEndLimit = date.atTime(availability.getEndTime());
+//
+//        logger.debug("[generateSlots] Generating slots from {} to {} with duration {} minutes",
+//                slotStart, slotEndLimit, duration);
+//
+//
+//        while(slotStart.isBefore(slotEndLimit)){
+//            LocalDateTime nextSlot = slotStart.plusMinutes(duration);
+//
+//            if(nextSlot.isAfter(slotEndLimit)){
+//                break;
+//            }
+//
+//            slots.add(SlotResponseDTO.builder()
+//                            .startTime(slotStart)
+//                            .endTime(nextSlot)
+//                            .build());
+//
+//            slotStart = nextSlot;
+//        }
+//
+//        logger.debug("[generateSlots] Generated {} slots", slots.size());
+//        return slots;
+//    }
+
     private List<SlotResponseDTO> generateSlots(AvailabilityEntity availability, LocalDate date, int duration){
         List<SlotResponseDTO> slots = new ArrayList<>();
 
-        LocalDateTime slotStart = date.atTime(availability.getStartTime());
-        LocalDateTime slotEndLimit = date.atTime(availability.getEndTime());
+        ZoneId hostZone = ZoneId.of(availability.getUser().getTimezone());
 
-        logger.debug("[generateSlots] Generating slots from {} to {} with duration {} minutes",
-                slotStart, slotEndLimit, duration);
+        ZonedDateTime slotStart = ZonedDateTime.of(date, availability.getStartTime(), hostZone);
 
+        ZonedDateTime slotEndLimit = ZonedDateTime.of(date, availability.getEndTime(), hostZone);
+
+        logger.debug("[generateSlots] Generating slots from {} to {} with duration {} minutes", slotStart, slotEndLimit, duration);
 
         while(slotStart.isBefore(slotEndLimit)){
-            LocalDateTime nextSlot = slotStart.plusMinutes(duration);
+            ZonedDateTime nextSlot = slotStart.plusMinutes(duration);
 
             if(nextSlot.isAfter(slotEndLimit)){
                 break;
             }
 
             slots.add(SlotResponseDTO.builder()
-                            .startTime(slotStart)
-                            .endTime(nextSlot)
-                            .build());
+                    .startTime(slotStart)         // converted back to local date time
+                    .endTime(nextSlot)            // converted back to local date time
+                    .build());
 
             slotStart = nextSlot;
         }

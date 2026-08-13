@@ -8,19 +8,21 @@ import com.proj.slotify.entity.UserEntity;
 import com.proj.slotify.enums.BookingStatus;
 import com.proj.slotify.util.IdGenerator;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 public class BookingMapper {
 
-    public static BookingEntity toEntity(BookingRequestDTO dto, UserEntity owner, LocalDateTime endTime){
+    public static BookingEntity toEntity(BookingRequestDTO dto, UserEntity owner, Instant startTime, Instant endTime){
         return BookingEntity.builder()
 //                .bookingId(UUID.randomUUID().toString().substring(0,8))
                 .bookingId(IdGenerator.generateForBooking())
                 .owner(owner)
                 .guestName(dto.getGuestName())
                 .guestEmail(dto.getGuestEmail())
-                .startTime(dto.getStartTime())
+                .startTime(startTime)
                 .endTime(endTime)
                 .status(BookingStatus.BOOKED)
                 .build();
@@ -37,8 +39,8 @@ public class BookingMapper {
         return MyBookingListResponseDTO.builder()
                 .bookingId(entity.getBookingId())
                 .guestName(entity.getGuestName())
-                .startTime(entity.getStartTime())
-                .endTime(entity.getEndTime())
+                .startTime(entity.getStartTime().toString())
+                .endTime(entity.getEndTime().toString())
                 .status(entity.getStatus().name())
                 .build();
     }

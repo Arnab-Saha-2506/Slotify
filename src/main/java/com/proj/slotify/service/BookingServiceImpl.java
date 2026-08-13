@@ -19,8 +19,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import java.time.DayOfWeek;
-import java.time.LocalDateTime;
+import java.time.*;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Service
@@ -48,7 +48,9 @@ public class BookingServiceImpl implements BookingService{
 //            throw new Exception("Start time must be before End time!");
 //        }
 
-        LocalDateTime endTime = dto.getStartTime().plusMinutes(dto.getDuration());
+//        LocalDateTime endTime = dto.getStartTime().plusMinutes(dto.getDuration());
+        Instant bookingStart = dto.getStartTime().toInstant();
+        Instant bookingEnd = bookingStart.plus(dto.getDuration(), ChronoUnit.MINUTES);
         logger.info("[createBooking] Owner found: id={}, email={}", ownerDetails.getId(), ownerDetails.getEmail());
 
         // Check against owner's availability
@@ -60,27 +62,35 @@ public class BookingServiceImpl implements BookingService{
             throw new BadRequestException("Owner is not available on " + dayOfWeek);
         }
 
-        LocalDateTime availabilityStart = dto.getStartTime().toLocalDate().atTime(availability.getStartTime());
-        LocalDateTime availabilityEnd = dto.getStartTime().toLocalDate().atTime(availability.getEndTime());
+//        LocalDateTime availabilityStart = dto.getStartTime().toLocalDate().atTime(availability.getStartTime());
+//        LocalDateTime availabilityEnd = dto.getStartTime().toLocalDate().atTime(availability.getEndTime());
+//
+//        boolean withinAvailability = !dto.getStartTime().isBefore(availabilityStart) && !endTime.isAfter(availabilityEnd);
 
-        boolean withinAvailability = !dto.getStartTime().isBefore(availabilityStart) && !endTime.isAfter(availabilityEnd);
+        ZoneId hostZone = ZoneId.of(ownerDetails.getTimezone());
+        ZonedDateTime slotInHostZone = dto.getStartTime().toZonedDateTime().withZoneSameInstant(hostZone);
+        LocalTime slotLocalTime = slotInHostZone.toLocalTime();
+        LocalTime slotEndLocalTime = slotLocalTime.plusMinutes(dto.getDuration());
+
+        boolean withinAvailability = !slotLocalTime.isBefore(availability.getStartTime())
+                && !slotEndLocalTime.isAfter(availability.getEndTime());
 
         if (!withinAvailability) {
             logger.warn("[createBooking] Slot {}-{} is outside owner's availability window {}-{}",
-                    dto.getStartTime(), endTime, availabilityStart, availabilityEnd);
+                    slotLocalTime, slotEndLocalTime, availability.getStartTime(), availability.getEndTime());
             throw new BadRequestException("Selected slot is outside owner's availability hours");
         }
 
         //Check conflicts
-        List<BookingEntity> conflicts = bookingRepository.findConflictingBookings(dto.getOwnerId(), dto.getStartTime(), endTime);
+        List<BookingEntity> conflicts = bookingRepository.findConflictingBookings(dto.getOwnerId(), bookingStart, bookingEnd);
 
         if(!conflicts.isEmpty()){
             logger.warn("[createBooking] Slot conflict detected for ownerId={}, startTime={}, endTime={}, conflictCount={}",
-                    dto.getOwnerId(), dto.getStartTime(), endTime, conflicts.size());
+                    dto.getOwnerId(), dto.getStartTime(), bookingEnd, conflicts.size());
             throw new SlotAlreadyBookedException("Slot already booked for this requested time.");
         }
 
-        BookingEntity booking = BookingMapper.toEntity(dto, ownerDetails, endTime);
+        BookingEntity booking = BookingMapper.toEntity(dto, ownerDetails, bookingStart, bookingEnd);
 
         BookingEntity saved = bookingRepository.save(booking);
 

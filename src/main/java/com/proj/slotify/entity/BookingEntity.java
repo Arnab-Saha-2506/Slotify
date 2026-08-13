@@ -4,6 +4,7 @@ import com.proj.slotify.enums.BookingStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 
@@ -29,10 +30,10 @@ public class BookingEntity extends BaseEntity{
     private String guestEmail;
 
     @Column(nullable = false)
-    private LocalDateTime startTime;
+    private Instant startTime;
 
     @Column(nullable = false)
-    private LocalDateTime endTime;
+    private Instant endTime;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

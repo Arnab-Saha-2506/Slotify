@@ -12,6 +12,7 @@ import com.proj.slotify.mapper.BookingMapper;
 import com.proj.slotify.repository.AvailabilityRepository;
 import com.proj.slotify.repository.BookingRepository;
 import com.proj.slotify.repository.UserRepository;
+import jakarta.mail.MessagingException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -31,6 +32,7 @@ public class BookingServiceImpl implements BookingService{
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final AvailabilityRepository availabilityRepository;
+    private final EmailService emailService;
 
     @Override
     @Transactional
@@ -96,6 +98,15 @@ public class BookingServiceImpl implements BookingService{
 
         logger.info("[createBooking] Booking saved successfully: bookingId={}, ownerId={}, startTime={}, endTime={}",
                 saved.getBookingId(), saved.getOwner().getId(), saved.getStartTime(), saved.getEndTime());
+
+        // --- Send confirmation email ---
+        try {
+            emailService.sendBookingConfirmation(saved, ownerDetails);
+        } catch (MessagingException e) {
+            logger.error("[createBooking] Failed to send confirmation email for bookingId={}", saved.getBookingId(), e);
+            // Do not fail the booking if email fails; log and continue
+        }
+
         return BookingMapper.toDTO(saved);
     }
 
@@ -191,6 +202,13 @@ public class BookingServiceImpl implements BookingService{
         booking.setStatus(BookingStatus.CANCELLED);
         BookingEntity saved = bookingRepository.save(booking);
         logger.info("[cancelBookingById] Booking cancelled successfully: bookingId={}", saved.getBookingId());
+
+        // --- Send cancellation email ---
+        try {
+            emailService.sendBookingCancellation(saved, user); // user = owner/host
+        } catch (MessagingException e) {
+            logger.error("[cancelBookingById] Failed to send cancellation email for bookingId={}", saved.getBookingId(), e);
+        }
 
         return BookingResponseDTO.builder()
                 .bookingId(saved.getBookingId())

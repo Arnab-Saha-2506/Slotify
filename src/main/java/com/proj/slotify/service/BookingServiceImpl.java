@@ -12,12 +12,12 @@ import com.proj.slotify.mapper.BookingMapper;
 import com.proj.slotify.repository.AvailabilityRepository;
 import com.proj.slotify.repository.BookingRepository;
 import com.proj.slotify.repository.UserRepository;
-import jakarta.mail.MessagingException;
+//import jakarta.mail.MessagingException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Async;
+//import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -101,13 +101,13 @@ public class BookingServiceImpl implements BookingService{
                 saved.getBookingId(), saved.getOwner().getId(), saved.getStartTime(), saved.getEndTime());
 
         // --- Send confirmation email ---
-//        try {
-//            emailService.sendBookingConfirmation(saved, ownerDetails);
-//        } catch (MessagingException e) {
-//            logger.error("[createBooking] Failed to send confirmation email for bookingId={}", saved.getBookingId(), e);
-//            // Do not fail the booking if email fails; log and continue
-//        }
-        sendConfirmationAsync(saved, ownerDetails);
+        try {
+            emailService.sendBookingConfirmation(saved, ownerDetails);
+        } catch (Exception e) {
+            logger.error("[createBooking] Failed to send confirmation email for bookingId={}", saved.getBookingId(), e);
+            // Do not fail the booking if email fails; log and continue
+        }
+//        sendConfirmationAsync(saved, ownerDetails);
 
         return BookingMapper.toDTO(saved);
     }
@@ -206,12 +206,12 @@ public class BookingServiceImpl implements BookingService{
         logger.info("[cancelBookingById] Booking cancelled successfully: bookingId={}", saved.getBookingId());
 
         // --- Send cancellation email ---
-//        try {
-//            emailService.sendBookingCancellation(saved, user); // user = owner/host
-//        } catch (MessagingException e) {
-//            logger.error("[cancelBookingById] Failed to send cancellation email for bookingId={}", saved.getBookingId(), e);
-//        }
-        sendCancellationAsync(saved, user);
+        try {
+            emailService.sendBookingCancellation(saved, user); // user = owner/host
+        } catch (Exception e) {
+            logger.error("[cancelBookingById] Failed to send cancellation email for bookingId={}", saved.getBookingId(), e);
+        }
+//        sendCancellationAsync(saved, user);
 
         return BookingResponseDTO.builder()
                 .bookingId(saved.getBookingId())
@@ -220,22 +220,22 @@ public class BookingServiceImpl implements BookingService{
                 .build();
     }
 
-    @Async
-    protected void sendConfirmationAsync(BookingEntity booking, UserEntity host){
-        try {
-            emailService.sendBookingConfirmation(booking, host);
-        } catch (MessagingException e) {
-            logger.error("[BookingServiceImpl] Async email failed for bookingId={}", booking.getBookingId(), e);
-            // Do not fail the booking if email fails; log and continue
-        }
-    }
+//    @Async
+//    protected void sendConfirmationAsync(BookingEntity booking, UserEntity host){
+//        try {
+//            emailService.sendBookingConfirmation(booking, host);
+//        } catch (MessagingException e) {
+//            logger.error("[BookingServiceImpl] Async email failed for bookingId={}", booking.getBookingId(), e);
+//            // Do not fail the booking if email fails; log and continue
+//        }
+//    }
 
-    @Async
-    protected void sendCancellationAsync(BookingEntity booking, UserEntity host){
-        try {
-            emailService.sendBookingCancellation(booking, host); // user = owner/host
-        } catch (MessagingException e) {
-            logger.error("[BookingServiceImpl] Async email failed for bookingId={}", booking.getBookingId(), e);
-        }
-    }
+//    @Async
+//    protected void sendCancellationAsync(BookingEntity booking, UserEntity host){
+//        try {
+//            emailService.sendBookingCancellation(booking, host); // user = owner/host
+//        } catch (MessagingException e) {
+//            logger.error("[BookingServiceImpl] Async email failed for bookingId={}", booking.getBookingId(), e);
+//        }
+//    }
 }

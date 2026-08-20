@@ -5,6 +5,7 @@ import com.proj.slotify.dto.LoginResponseDTO;
 import com.proj.slotify.dto.RegisterRequestDTO;
 import com.proj.slotify.dto.RegisterResponseDTO;
 import com.proj.slotify.entity.UserEntity;
+import com.proj.slotify.enums.AuthProvider;
 import com.proj.slotify.exception.BadRequestException;
 import com.proj.slotify.exception.InvalidCredsException;
 import com.proj.slotify.exception.UserAlreadyExistsException;
@@ -50,6 +51,7 @@ public class RegisterServiceImpl implements RegisterService{
                 .email(dto.getEmail())
                 .password(hashedPassword)
                 .timezone(dto.getTimezone())
+                .authProvider(AuthProvider.LOCAL)
                 .build();
         logger.info("[registerUser] Generated user ID: {}", userDetails.getId());
 

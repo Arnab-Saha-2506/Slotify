@@ -2,6 +2,7 @@ package com.proj.slotify.config;
 
 import com.proj.slotify.security.JwtAuthEntryPoint;
 import com.proj.slotify.security.JwtAuthFilter;
+import com.proj.slotify.security.OAuth2AuthenticationSuccessHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -18,10 +19,15 @@ public class SecurityConfig {
 
         private final JwtAuthFilter jwtAuthFilter;
         private final JwtAuthEntryPoint jwtAuthEntryPoint;
+        private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
 
-        public SecurityConfig(JwtAuthFilter jwtAuthFilter, JwtAuthEntryPoint jwtAuthEntryPoint) {
+        public SecurityConfig(
+                JwtAuthFilter jwtAuthFilter,
+                JwtAuthEntryPoint jwtAuthEntryPoint,
+                OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler) {
                 this.jwtAuthFilter = jwtAuthFilter;
                 this.jwtAuthEntryPoint = jwtAuthEntryPoint;
+                this.oAuth2AuthenticationSuccessHandler = oAuth2AuthenticationSuccessHandler;
         }
 
         @Bean
@@ -48,12 +54,16 @@ public class SecurityConfig {
                                                                 "/api/v1/auth/register",
                                                                 "/api/v1/auth/login",
                                                                 "/api/v1/auth/logout",
+                                                                "/api/v1/auth/google",
+                                                                "/oauth2/authorization/google",
+                                                                "/login/oauth2/code/**",
                                                                 "/api/v1/users/*/slots")
                                                 .permitAll()
                                                 .requestMatchers(HttpMethod.POST, "/api/v1/bookings").permitAll()
                                                 .anyRequest().authenticated())
                                 .exceptionHandling(ex -> ex
                                                 .authenticationEntryPoint(jwtAuthEntryPoint))
+                        .oauth2Login(oauth2 -> oauth2.successHandler(oAuth2AuthenticationSuccessHandler))
                                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
                 // .httpBasic(httpBasic -> httpBasic.disable()) // remove the login popup
                 // .formLogin(formLogin -> formLogin.disable()) // no login page redirect

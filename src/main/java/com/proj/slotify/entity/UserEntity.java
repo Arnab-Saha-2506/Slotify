@@ -1,10 +1,7 @@
 package com.proj.slotify.entity;
 
 import com.proj.slotify.enums.AuthProvider;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
+import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.List;
@@ -35,6 +32,8 @@ public class UserEntity extends BaseEntity {
 
     @Column(nullable = false)
     @org.hibernate.annotations.ColumnDefault("LOCAL")
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
     private AuthProvider authProvider = AuthProvider.LOCAL;
 
     @OneToMany(mappedBy = "user")

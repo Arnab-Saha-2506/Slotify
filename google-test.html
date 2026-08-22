@@ -1,0 +1,25 @@
+<script src="https://accounts.google.com/gsi/client" async></script>
+
+<div id="buttonDiv"></div>
+
+<script>
+    function handleCredentialResponse(response) {
+        console.log("Google ID Token:");
+        console.log(response.credential);
+    }
+
+    window.onload = function () {
+        google.accounts.id.initialize({
+            client_id: "189082593393-0em9cmbkrm1tpchsp6httj6b6e5i89ff.apps.googleusercontent.com",
+            callback: handleCredentialResponse
+        });
+
+        google.accounts.id.renderButton(
+            document.getElementById("buttonDiv"),
+            {
+                theme: "outline",
+                size: "large"
+            }
+        );
+    };
+</script>

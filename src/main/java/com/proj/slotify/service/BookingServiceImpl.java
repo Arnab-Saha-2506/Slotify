@@ -34,6 +34,7 @@ public class BookingServiceImpl implements BookingService{
     private final UserRepository userRepository;
     private final AvailabilityRepository availabilityRepository;
     private final EmailService emailService;
+    private final GoogleCalenderService googleCalenderService;
 
     @Override
     @Transactional
@@ -106,6 +107,14 @@ public class BookingServiceImpl implements BookingService{
         } catch (Exception e) {
             logger.error("[createBooking] Failed to send confirmation email for bookingId={}", saved.getBookingId(), e);
             // Do not fail the booking if email fails; log and continue
+        }
+
+        // Create Google Calender Event
+        try{
+            googleCalenderService.createBookingEvent(saved);
+        }
+        catch (Exception e){
+            logger.error("[createBooking] Failed to create calendar event for bookingId={}", saved.getBookingId(), e);
         }
 //        sendConfirmationAsync(saved, ownerDetails);
 

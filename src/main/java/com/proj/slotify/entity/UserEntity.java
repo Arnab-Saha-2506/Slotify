@@ -39,5 +39,8 @@ public class UserEntity extends BaseEntity {
     @OneToMany(mappedBy = "user")
     private List<AvailabilityEntity> availabilityEntityList;
 
+    @OneToOne(mappedBy = "user")
+    private GoogleCalenderCredentialEntity googleCalenderCredentialEntity;
+
 
 }

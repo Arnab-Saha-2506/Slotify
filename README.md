@@ -4,7 +4,9 @@
 
 Slotify allows users to manage their weekly availability, generate available time slots, and book or cancel appointments.
 
-The main focus of this project was to go beyond basic CRUD operations and implement real-world backend concepts such as **JWT authentication, scheduling logic, transactions, concurrency control, pessimistic locking, validation, and data consistency**.
+The project also supports **timezone-aware slot conversion** and **Google authentication**, while keeping Slotify's own JWT as the authentication mechanism for protected APIs.
+
+The main focus of this project was to go beyond basic CRUD operations and implement real-world backend concepts such as **JWT authentication, OAuth-based Google authentication, scheduling logic, timezone conversion, transactions, concurrency control, pessimistic locking, validation, and data consistency**.
 
 ---
 
@@ -138,7 +140,7 @@ Slotify currently uses **MySQL**.
 | `name` | User name |
 | `email` | Unique user email |
 | `password` | Encrypted password |
-| `createdAt` | Account creation time |
+| `timezone` | User's configured timezone |
 
 ## Availability
 
@@ -188,6 +190,82 @@ Authorization: Bearer <JWT_TOKEN>
 ```
 
 The JWT is validated by Spring Security before allowing access to protected endpoints.
+
+## 🌐 Google Authentication
+
+Slotify also supports authentication using a **Google ID token**.
+
+The flow is:
+
+```text
+Client
+  ↓
+Google Sign-In
+  ↓
+Google ID Token
+  ↓
+Slotify Google Authentication API
+  ↓
+Verify Google Identity
+  ↓
+Find / Create User
+  ↓
+Generate Slotify JWT
+  ↓
+Client
+```
+
+The Google ID token is used only to authenticate the user's Google identity. After successful authentication, Slotify issues its own JWT, which is then used to access protected APIs.
+
+### Google Authentication Endpoint
+
+```http
+POST /api/v1/auth/google
+```
+
+Request body:
+
+```json
+{
+  "idToken": "<GOOGLE_ID_TOKEN>"
+}
+```
+
+> **Note:** The Google authentication flow was tested using a temporary Google Identity Services HTML page because Slotify currently focuses on the backend.
+
+---
+
+## 🌍 Timezone Conversion
+
+Slotify supports timezone-aware conversion of available time slots.
+
+A user's availability is stored using their configured timezone. When requesting available slots, the client can optionally provide a target timezone.
+
+```http
+GET /api/v1/slots?date=2026-08-15&duration=30&timezone=America/New_York
+```
+
+The API converts the generated slots from the availability owner's timezone to the requested timezone while preserving the actual point in time.
+
+For example:
+
+```text
+Host timezone:
+2026-08-15 09:00 +05:30
+
+Target timezone:
+2026-08-14 23:30 -04:00
+```
+
+Crossing midnight during timezone conversion is expected because the same instant can fall on different calendar dates in different timezones.
+
+If the timezone query parameter is not provided, Slotify currently defaults to:
+
+```text
+Asia/Kolkata
+```
+
+Invalid timezone identifiers are rejected by the API.
 
 ---
 
@@ -242,6 +320,8 @@ The system considers:
 - Current date and time
 - Existing bookings
 - User availability
+- User timezone
+- Requested target timezone
 
 ### Example
 
@@ -476,6 +556,8 @@ The application has been tested for:
 - User registration
 - User login
 - JWT authentication
+- Google authentication
+- Timezone conversion
 - Availability creation
 - Availability updates
 - Availability deletion
@@ -560,6 +642,18 @@ https://slotify-api-zjzu.onrender.com/health
 
 ---
 
+## Timezone Conversion
+
+![Timezone Conversion](docs/timezone.png)
+
+---
+
+## Google Authentication
+
+![Google Authentication](docs/google-auth.png)
+
+---
+
 ## Booking
 
 ![Booking API](docs/booking.png)
@@ -576,14 +670,15 @@ The application prevents concurrent requests from successfully booking the same 
 
 Planned improvements include:
 
-- Google Authentication
-- Google Calendar integration
 - Email notifications
+- Google Calendar integration
 - Additional scheduling options
 - Redis caching
 - Improved booking management
 - More comprehensive automated tests
 - Additional API improvements
+
+> Google Calendar integration is intentionally kept as a future enhancement. The current project scope is limited to the backend authentication and scheduling features completed through **v1.3**.
 
 ---
 

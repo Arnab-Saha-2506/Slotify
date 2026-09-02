@@ -14,7 +14,8 @@ public class CorsConfig {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
                         .allowedOrigins("http://localhost:3001",
-                                "http://localhost:3000")
+                                "http://localhost:3000",
+                                "http://localhost:63342")
                         .allowedOriginPatterns("http://localhost:*",
                                 "https://*.onrender.com",
                                 "https://*.vercel.app",

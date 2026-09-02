@@ -17,17 +17,27 @@ public class GoogleCalenderCredentialEntity extends BaseEntity{
     private String id;
 
     @OneToOne
-    @MapsId
-    @JoinColumn(name = "id")
+//    @MapsId
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
     private UserEntity user;
 
-    @Column(length = 255, nullable = false)
+    @Column(columnDefinition = "TEXT")
     private String accessToken;
 
-    @Column(length = 255)
+    @Column(columnDefinition = "TEXT")
     private String refreshToken;
 
     @Column(nullable = false)
     private Instant expiresAt;
+
+    @Column(nullable = false)
+    private Boolean connected = false;
+
+    @PrePersist
+    protected void onClick(){
+        if(this.id == null){
+            this.id = java.util.UUID.randomUUID().toString();
+        }
+    }
 
 }

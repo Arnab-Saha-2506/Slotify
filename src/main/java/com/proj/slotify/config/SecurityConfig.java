@@ -38,7 +38,7 @@ public class SecurityConfig {
         @Bean
         public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
                 http
-                                // .cors(Customizer.withDefaults())
+                                 .cors(Customizer.withDefaults())
                                 .csrf(csrf -> csrf.disable())
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -57,6 +57,7 @@ public class SecurityConfig {
                                                                 "/api/v1/auth/google",
                                                                 "/oauth2/authorization/google",
                                                                 "/login/oauth2/code/**",
+                                                                "/api/v1/google/calendar/callback",
                                                                 "/api/v1/users/*/slots")
                                                 .permitAll()
                                                 .requestMatchers(HttpMethod.POST, "/api/v1/bookings").permitAll()

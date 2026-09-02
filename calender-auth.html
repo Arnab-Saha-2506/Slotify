@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Slotify - Connect Google Calendar</title>
+</head>
+<body>
+<h2>Connect Google Calendar</h2>
+
+<div>
+    <label>Slotify JWT Token:</label><br>
+    <textarea id="jwtToken" rows="3" cols="80" placeholder="Paste your Slotify JWT here"></textarea>
+</div>
+
+<br>
+
+<button onclick="connectCalendar()">Connect Google Calendar</button>
+
+<p id="status"></p>
+
+<script>
+    async function connectCalendar() {
+        const jwtToken = document.getElementById('jwtToken').value.trim();
+        const statusEl = document.getElementById('status');
+
+        if (!jwtToken) {
+            statusEl.innerHTML = '<span style="color:red">Please paste your JWT token first</span>';
+            return;
+        }
+
+        statusEl.innerHTML = 'Getting authorization URL...';
+
+        try {
+            const response = await fetch('http://localhost:2025/api/v1/google/calendar/connect', {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + jwtToken
+                }
+            });
+
+            if (!response.ok) {
+                const error = await response.text();
+                statusEl.innerHTML = '<span style="color:red">Error: ' + response.status + ' - ' + error + '</span>';
+                return;
+            }
+
+            const data = await response.json();
+            statusEl.innerHTML = 'Redirecting to Google...';
+
+            // Redirect to Google authorization URL
+            window.location.href = data.authUrl;
+
+        } catch (error) {
+            statusEl.innerHTML = '<span style="color:red">Error: ' + error.message + '</span>';
+        }
+    }
+</script>
+</body>
+</html>
